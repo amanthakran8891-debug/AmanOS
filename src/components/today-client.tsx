@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { motion } from "framer-motion";
 import type { DashboardData } from "@/lib/data";
 import { Ring } from "./ring";
+import { CheckinCard } from "./checkin-card";
 import { addWater, addFood, setField, toggleFlag, relapse, markCleanToday } from "@/app/actions";
 
 export function TodayClient({ data, dateLabel }: { data: DashboardData; dateLabel: string }) {
@@ -67,6 +68,11 @@ export function TodayClient({ data, dateLabel }: { data: DashboardData; dateLabe
         </div>
         <Ring value={score.total} max={100} size={72} stroke={9} color={score.color} center={<span className="text-base font-bold text-white">{score.total}</span>} />
       </header>
+
+      {/* Morning / Night check-in */}
+      <div className="mb-3">
+        <CheckinCard data={data} />
+      </div>
 
       <div className="mb-3 flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3">
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-bg">

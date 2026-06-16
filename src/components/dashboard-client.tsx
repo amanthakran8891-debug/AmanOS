@@ -10,6 +10,8 @@ import { Dragon } from "./dragon";
 import { Hourglass } from "./hourglass";
 import { GitaCard } from "./gita-card";
 import { WisdomCard } from "./wisdom-card";
+import { CleanStreakHero } from "./clean-streak-hero";
+import { InstallCard } from "./install-card";
 import { MissionCard } from "./mission-card";
 import { QuickActions } from "./quick-actions";
 import { FutureSelf } from "./future-self";
@@ -73,6 +75,11 @@ export function DashboardClient({ data, verse, wisdom, dateLabel }: { data: Dash
 
       {/* Daily Wisdom (rotating header) */}
       <WisdomCard wisdom={wisdom} dateLabel={dateLabel} />
+
+      {/* Clean Streak Hero */}
+      <section className="mt-4">
+        <CleanStreakHero lastJointAt={settings.lastJointAt} streakDays={streakDays} longestStreak={settings.longestStreakDays} />
+      </section>
 
       {/* Hero: Life Score + Dragon */}
       <section className="mt-4 grid gap-4 lg:grid-cols-5">
@@ -164,6 +171,11 @@ export function DashboardClient({ data, verse, wisdom, dateLabel }: { data: Dash
       {/* Bhagavad Gita */}
       <section className="mt-4">
         <GitaCard verse={verse} />
+      </section>
+
+      {/* PWA install prompt */}
+      <section className="mt-4">
+        <InstallCard />
       </section>
 
       <footer className="mt-8 text-center text-xs text-slate-600">AmanOS · Life Command Center — built to make every day count.</footer>

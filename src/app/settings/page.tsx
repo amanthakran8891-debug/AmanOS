@@ -1,6 +1,7 @@
 import prisma from "@/lib/db";
 import { PageHeader } from "@/components/bits";
 import { SettingsClient } from "@/components/settings-client";
+import { PrivacyNotice } from "@/components/privacy-notice";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,9 @@ export default async function SettingsPage() {
           lastJointAt: s.lastJointAt ? s.lastJointAt.toISOString() : null,
         }}
       />
+      <div className="mt-4">
+        <PrivacyNotice />
+      </div>
     </main>
   );
 }

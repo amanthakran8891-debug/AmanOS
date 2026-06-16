@@ -110,6 +110,8 @@ export async function getDashboardData() {
         proteinG: d?.proteinG ?? 0,
         sleepHours: d?.sleepHours ?? 0,
         steps: d?.steps ?? 0,
+        nclexHours: d?.nclexHours ?? 0,
+        bharatfareDone: d?.bharatfareDone ?? false,
         jointClean: d?.jointClean ?? true,
         gymDone: d?.gymDone ?? false,
       };

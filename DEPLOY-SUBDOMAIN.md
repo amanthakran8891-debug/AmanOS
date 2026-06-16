@@ -75,6 +75,25 @@ curl -s "https://life.bharatfare.com/robots.txt"                                
 # 4) login with AMANOS_PASSWORD → dashboard loads; install the PWA from the browser menu
 ```
 
+## 5. Updating AmanOS (VPS) — after pushing new code
+```bash
+cd /var/www/amanos
+git pull
+npm install
+npm run build
+pm2 restart amanos        # PM2 app name is "amanos"
+```
+If you changed the Prisma schema: `npx prisma migrate deploy` before `npm run build`.
+
+## 6. Deployment cleanup checklist (confirm once)
+```bash
+pm2 list | grep amanos                                   # app name is exactly "amanos"
+curl -s -I "https://life.bharatfare.com/login" | grep -i x-robots-tag    # noindex, nofollow, noarchive (set in next.config + nginx if you also added it there)
+curl -s "https://life.bharatfare.com/robots.txt"          # User-agent: *  Disallow: /
+```
+- App-level noindex ships from `next.config.mjs` (`X-Robots-Tag` on every response) — so it works even on Vercel. If you *also* want it at the nginx layer (belt-and-braces), add to the `location /` block:
+  `add_header X-Robots-Tag "noindex, nofollow, noarchive" always;` then `sudo nginx -t && sudo systemctl reload nginx`.
+
 ## Notes
 - **Single user:** only `AMANOS_PASSWORD` can log in. Keep it long and private. Rotating `AMANOS_SECRET` invalidates all existing sessions (forces re-login) — useful if a device is lost.
 - **Isolation:** AmanOS has its own repo, build, DB, domain, and process. There is no shared code, bundle, middleware, or table with public BharatFare — zero performance or data coupling.
