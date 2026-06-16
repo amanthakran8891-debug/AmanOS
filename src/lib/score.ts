@@ -93,18 +93,34 @@ export interface DragonState {
 
 const DRAGON_STAGES: { name: string; color: string }[] = [
   { name: "Massive Fire Dragon", color: "#fb7185" }, // 1 strongest
-  { name: "Strong Dragon", color: "#f97316" },
-  { name: "Injured Dragon", color: "#fbbf24" },
-  { name: "Weak Dragon", color: "#a3e635" },
-  { name: "Tiny Dragon", color: "#22d3ee" },
-  { name: "Defeated Dragon", color: "#34f5c5" }, // 6 weakest
+  { name: "Wounded Dragon", color: "#f97316" },
+  { name: "Broken Dragon", color: "#fbbf24" },
+  { name: "Fading Dragon", color: "#a3e635" },
+  { name: "Dying Dragon", color: "#22d3ee" },
+  { name: "Dragon Defeated", color: "#34f5c5" }, // 6 weakest
 ];
 
-export function dragonState(scoreTotal: number, streakDays: number): DragonState {
+export interface DragonOpts {
+  /** Today's craving intensity 0–10 — strong cravings feed (heal) the dragon. */
+  cravingIntensity?: number;
+  /** Today's Discipline (accountability) score 0–100 — discipline damages the dragon. */
+  disciplineScore?: number;
+}
+
+export function dragonState(scoreTotal: number, streakDays: number, opts: DragonOpts = {}): DragonState {
   const streakFactor = clamp01(streakDays / 30) * 100; // 30 clean days = fully starved
-  // Weighted: today's behaviour (60%) + momentum/streak (40%).
-  const progress = clamp01((0.6 * scoreTotal + 0.4 * streakFactor) / 100) * 100;
-  const power = Math.round(Math.max(0, Math.min(100, 100 - progress)));
+  // The dragon's strength is driven by your behaviour. Today's Life Score already
+  // bakes in the day's combat — every clean day, gym session, mission and good
+  // sleep damages it; missing them feeds it. Streak = sustained pressure.
+  // If a Discipline score is supplied, blend it into today's behaviour term so
+  // accountability directly deals damage.
+  const behaviour = opts.disciplineScore != null ? 0.7 * scoreTotal + 0.3 * opts.disciplineScore : scoreTotal;
+  const progress = clamp01((0.6 * behaviour + 0.4 * streakFactor) / 100) * 100;
+  let power = 100 - progress;
+  // Cravings are the dragon's food — log a high craving and it claws back HP.
+  const craving = Math.max(0, Math.min(10, opts.cravingIntensity ?? 0));
+  power += (craving / 10) * 12; // up to +12
+  power = Math.round(Math.max(0, Math.min(100, power)));
 
   let stageIdx: number;
   if (power >= 85) stageIdx = 0;
@@ -128,3 +144,4 @@ export function dragonState(scoreTotal: number, streakDays: number): DragonState
 export function fmtClock(n: number) {
   return String(n).padStart(2, "0");
 }
+// (discipline + craving feed dragon damage; see dragonState opts)

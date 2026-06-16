@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
-import type { DashboardData } from "@/lib/data";
+import type { DashboardData, CeoData } from "@/lib/data";
 import type { Verse } from "@/lib/gita";
 import type { Wisdom } from "@/lib/wisdom";
+import { CeoDashboard } from "./ceo-dashboard";
 import { Ring, MiniRing } from "./ring";
 import { Dragon } from "./dragon";
 import { Hourglass } from "./hourglass";
@@ -52,12 +54,15 @@ const ACHIEVEMENTS: { key: string; label: string; icon: string }[] = [
   { key: "life-commander", label: "Life Commander", icon: "⚡" },
 ];
 
-export function DashboardClient({ data, verse, wisdom, dateLabel }: { data: DashboardData; verse: Verse; wisdom: Wisdom; dateLabel: string }) {
+export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data: DashboardData; ceo: CeoData; verse: Verse; wisdom: Wisdom; dateLabel: string }) {
   const [pending, start] = useTransition();
   const run = (fn: () => Promise<void>) => start(() => void fn());
 
   const { today, score, dragon, settings, streakDays, history, foods, gymSets, partRecency, budget } = data;
   const zoneText = score.zone === "excellent" ? "Excellent" : score.zone === "improving" ? "Improving" : "Off Track";
+  const disc = data.disciplineToday;
+  const discBand = disc >= 75 ? "Strong day" : disc >= 45 ? "Partial day" : "Drift day";
+  const discColor = disc >= 75 ? "#34f5c5" : disc >= 45 ? "#fbbf24" : "#fb7185";
 
   return (
     <div className={`mx-auto max-w-6xl px-4 pb-24 pt-6 ${pending ? "opacity-95" : ""}`}>
@@ -73,8 +78,15 @@ export function DashboardClient({ data, verse, wisdom, dateLabel }: { data: Dash
         <span className="chip" style={{ color: score.color, borderColor: `${score.color}55` }}>● {zoneText}</span>
       </header>
 
+      {/* CEO Dashboard — the cockpit. Am I winning? Biggest problem? What next? */}
+      <section className="mt-1">
+        <CeoDashboard ceo={ceo} />
+      </section>
+
       {/* Daily Wisdom (rotating header) */}
-      <WisdomCard wisdom={wisdom} dateLabel={dateLabel} />
+      <div className="mt-4">
+        <WisdomCard wisdom={wisdom} dateLabel={dateLabel} />
+      </div>
 
       {/* Clean Streak Hero */}
       <section className="mt-4">
@@ -121,8 +133,24 @@ export function DashboardClient({ data, verse, wisdom, dateLabel }: { data: Dash
             </div>
           </div>
         </div>
-        <div className="lg:col-span-3">
-          <Dragon dragon={dragon} />
+        <div className="lg:col-span-3 space-y-3">
+          <Link href="/combat" className="block transition active:scale-[0.99]" aria-label="Open Dragon Arena">
+            <Dragon dragon={dragon} />
+            <p className="mt-1 text-center text-[11px] font-semibold text-neon-violet">⚔ Tap to enter the Dragon Arena →</p>
+          </Link>
+          <Link href="/combat" className="card flex items-center justify-between transition hover:border-neon-violet/50" style={{ background: "linear-gradient(160deg, rgba(167,139,250,0.10), rgba(13,19,34,0.55))" }}>
+            <div className="min-w-0 flex-1">
+              <p className="label">Campaign · Lvl {data.combat.level} <span className="text-neon-violet">{data.combat.rank}</span></p>
+              <div className="mt-1.5 h-1.5 w-full max-w-[180px] overflow-hidden rounded-full bg-bg">
+                <div className="h-full rounded-full bg-gradient-to-r from-neon-violet to-neon-cyan" style={{ width: `${data.combat.levelProgressPct}%` }} />
+              </div>
+              <p className="mt-1 text-[10px] text-slate-500">{data.combat.maxed ? "Max rank" : `${data.combat.xpIntoLevel}/${data.combat.xpToNext} XP to next`} · Threat {data.combat.dragon.threat}</p>
+            </div>
+            <div className="ml-3 text-right">
+              <p className="text-sm font-bold text-neon-violet">CP {data.combat.combatPower}</p>
+              <p className="text-[10px] text-slate-500">Enter battle →</p>
+            </div>
+          </Link>
         </div>
       </section>
 
@@ -153,6 +181,36 @@ export function DashboardClient({ data, verse, wisdom, dateLabel }: { data: Dash
         </div>
       </section>
 
+      {/* Discipline — the truth mirror */}
+      <section className="mt-4">
+        <Link href="/discipline" className="card flex items-center justify-between transition hover:border-neon-amber/50" style={{ background: `linear-gradient(160deg, ${discColor}18, rgba(13,19,34,0.55))` }}>
+          <div>
+            <p className="label">Discipline · today</p>
+            <p className="text-4xl font-extrabold tabular-nums" style={{ color: discColor }}>{disc}<span className="text-base text-slate-500"> / 100</span></p>
+            <p className="text-[11px] font-semibold" style={{ color: discColor }}>{discBand} · the truth mirror →</p>
+          </div>
+          <span className="text-4xl">⚖️</span>
+        </Link>
+      </section>
+
+      {/* Command Centers — top-priority destinations */}
+      <section className="mt-4 grid grid-cols-2 gap-4">
+        <Link href="/recovery" className="card flex items-center gap-3 transition hover:border-neon-green/50" style={{ background: "linear-gradient(160deg, rgba(52,245,197,0.10), rgba(13,19,34,0.55))" }}>
+          <span className="text-3xl">🛡️</span>
+          <div>
+            <p className="text-sm font-bold text-white">Recovery & Freedom</p>
+            <p className="text-[11px] text-slate-400">{streakDays}d clean · forecast & symptoms →</p>
+          </div>
+        </Link>
+        <Link href="/nclex" className="card flex items-center gap-3 transition hover:border-neon-cyan/50" style={{ background: "linear-gradient(160deg, rgba(34,211,238,0.10), rgba(13,19,34,0.55))" }}>
+          <span className="text-3xl">📚</span>
+          <div>
+            <p className="text-sm font-bold text-white">NCLEX Command</p>
+            <p className="text-[11px] text-slate-400">Questions, accuracy, exam countdown →</p>
+          </div>
+        </Link>
+      </section>
+
       {/* Today's Mission */}
       <section className="mt-4">
         <MissionCard data={data} />
@@ -176,6 +234,22 @@ export function DashboardClient({ data, verse, wisdom, dateLabel }: { data: Dash
       {/* PWA install prompt */}
       <section className="mt-4">
         <InstallCard />
+      </section>
+
+      {/* More destinations */}
+      <section className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
+        {[
+          { href: "/spiritual", label: "Spiritual", icon: "🕉" },
+          { href: "/character", label: "Character", icon: "⚔" },
+          { href: "/combat", label: "Arena", icon: "🐉" },
+          { href: "/entries", label: "Entries", icon: "✎" },
+          { href: "/reviews/weekly", label: "Reviews", icon: "📈" },
+          { href: "/settings", label: "Settings", icon: "⚙" },
+        ].map((l) => (
+          <Link key={l.href} href={l.href} className="card-tight flex items-center justify-center gap-2 text-sm font-semibold text-slate-300 transition hover:text-white">
+            <span>{l.icon}</span>{l.label}
+          </Link>
+        ))}
       </section>
 
       <footer className="mt-8 text-center text-xs text-slate-600">AmanOS · Life Command Center — built to make every day count.</footer>
@@ -214,12 +288,15 @@ function RelapseButton({ pending, onRelapse }: { pending: boolean; onRelapse: (t
   const [trigger, setTrigger] = useState<string>(TRIGGERS[0]);
   if (!open) return <button className="btn-danger" onClick={() => setOpen(true)}>Log relapse</button>;
   return (
-    <div className="flex w-full flex-wrap items-center gap-2 rounded-xl border border-neon-red/30 bg-neon-red/5 p-2">
-      <select className="input max-w-[150px]" value={trigger} onChange={(e) => setTrigger(e.target.value)}>
-        {TRIGGERS.map((t) => <option key={t} value={t}>{t}</option>)}
-      </select>
-      <button className="btn-danger" disabled={pending} onClick={() => { onRelapse(trigger, ""); setOpen(false); }}>Confirm reset</button>
-      <button className="btn-ghost" onClick={() => setOpen(false)}>Cancel</button>
+    <div className="w-full rounded-xl border border-neon-red/30 bg-neon-red/5 p-2">
+      <p className="mb-2 text-xs font-semibold text-neon-violet">This is a setback, not the end. Your streak resets, but the progress you built isn&apos;t wiped to zero.</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <select className="input max-w-[150px]" value={trigger} onChange={(e) => setTrigger(e.target.value)}>
+          {TRIGGERS.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <button className="btn-danger" disabled={pending} onClick={() => { onRelapse(trigger, ""); setOpen(false); }}>Confirm reset</button>
+        <button className="btn-ghost" onClick={() => setOpen(false)}>Cancel</button>
+      </div>
     </div>
   );
 }

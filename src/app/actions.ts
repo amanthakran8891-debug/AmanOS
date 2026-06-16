@@ -224,6 +224,15 @@ export async function markCleanToday() {
   revalidatePath("/");
 }
 
+/** Mark that the morning/night check-in was used today (discipline component). */
+export async function markCheckin() {
+  const date = todayKey();
+  await ensureDay(date);
+  await prisma.dayLog.update({ where: { date }, data: { checkinDone: true } });
+  revalidatePath("/");
+  revalidatePath("/discipline");
+}
+
 export async function resetStreakAnchor(to: Date) {
   await prisma.settings.update({ where: { id: 1 }, data: { lastJointAt: to } });
   revalidatePath("/");
@@ -236,6 +245,146 @@ export async function updateSettings(data: Record<string, number>) {
   revalidatePath("/");
   revalidatePath("/settings");
   revalidatePath("/today");
+}
+
+// ── NCLEX / AHPRA Command Center ─────────────────────────────────────────────
+
+/** Log a study session. Rolls up into the day's NCLEX counters + Life Score. */
+export async function logNclexSession(topic: string, questions: number, correct: number, minutes: number) {
+  const date = todayKey();
+  const day = await ensureDay(date);
+  const q = Math.max(0, Math.round(questions));
+  const c = Math.max(0, Math.min(q, Math.round(correct)));
+  const m = Math.max(0, Math.round(minutes));
+  await prisma.nclexSession.create({ data: { date, topic, questions: q, correct: c, minutes: m } });
+  await prisma.dayLog.update({
+    where: { date },
+    data: {
+      nclexQuestions: day.nclexQuestions + q,
+      nclexCorrect: day.nclexCorrect + c,
+      nclexHours: Math.round((day.nclexHours + m / 60) * 100) / 100,
+    },
+  });
+  await recompute(date);
+  revalidatePath("/");
+  revalidatePath("/nclex");
+}
+
+export async function deleteNclexSession(id: string) {
+  const s = await prisma.nclexSession.findUnique({ where: { id } });
+  if (!s) return;
+  await prisma.nclexSession.delete({ where: { id } });
+  const day = await prisma.dayLog.findUnique({ where: { date: s.date } });
+  if (day) {
+    await prisma.dayLog.update({
+      where: { date: s.date },
+      data: {
+        nclexQuestions: Math.max(0, day.nclexQuestions - s.questions),
+        nclexCorrect: Math.max(0, day.nclexCorrect - s.correct),
+        nclexHours: Math.max(0, Math.round((day.nclexHours - s.minutes / 60) * 100) / 100),
+      },
+    });
+    await recompute(s.date);
+  }
+  revalidatePath("/nclex");
+  revalidatePath("/");
+}
+
+export async function setNclexExam(dateISO: string | null, name: string) {
+  await prisma.settings.update({
+    where: { id: 1 },
+    data: { nclexExamDate: dateISO ? new Date(dateISO) : null, nclexExamName: name || "NCLEX-RN" },
+  });
+  revalidatePath("/nclex");
+  revalidatePath("/");
+}
+
+// ── Recovery & Freedom Command Center ────────────────────────────────────────
+
+export async function updateRecoveryProfile(data: {
+  recUseLevel?: string;
+  recJointsPerDay?: number;
+  recUseYears?: number;
+  recActivityLevel?: string;
+  recExerciseFreq?: number;
+  recBaselineWeight?: number | null;
+}) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await prisma.settings.update({ where: { id: 1 }, data: data as any });
+  revalidatePath("/recovery");
+  revalidatePath("/");
+}
+
+export async function logSymptoms(
+  values: {
+    cravings: number; anxiety: number; irritability: number; sleep: number; appetite: number;
+    motivation: number; focus: number; mood: number; restlessness: number; boredom: number;
+  },
+  note: string,
+) {
+  const date = todayKey();
+  await prisma.symptomLog.upsert({
+    where: { date },
+    update: { ...values, note: note || null },
+    create: { date, ...values, note: note || null },
+  });
+  revalidatePath("/recovery");
+  revalidatePath("/");
+}
+
+// ── Spiritual Command Center ─────────────────────────────────────────────────
+
+async function logReading(kind: "gita" | "chalisa" | "reflection") {
+  const date = todayKey();
+  await prisma.spiritualReadingLog.upsert({
+    where: { date_kind: { date, kind } },
+    create: { date, kind, count: 1 },
+    update: { count: { increment: 1 } },
+  });
+}
+
+export async function setGitaProgress(chapter: number, verse: number) {
+  await prisma.spiritualProgress.upsert({
+    where: { id: 1 },
+    create: { id: 1, gitaChapter: chapter, gitaVerse: verse },
+    update: { gitaChapter: chapter, gitaVerse: verse },
+  });
+  await logReading("gita");
+  revalidatePath("/spiritual");
+  revalidatePath("/character");
+}
+
+export async function setChalisaProgress(line: number) {
+  await prisma.spiritualProgress.upsert({
+    where: { id: 1 },
+    create: { id: 1, chalisaLine: line },
+    update: { chalisaLine: line },
+  });
+  await logReading("chalisa");
+  revalidatePath("/spiritual");
+  revalidatePath("/character");
+}
+
+export async function toggleSpiritualMark(kind: string, ref: string, type: "bookmark" | "favourite") {
+  const existing = await prisma.spiritualMark.findUnique({ where: { kind_ref_type: { kind, ref, type } } });
+  if (existing) await prisma.spiritualMark.delete({ where: { id: existing.id } });
+  else await prisma.spiritualMark.create({ data: { kind, ref, type } });
+  revalidatePath("/spiritual");
+}
+
+export async function saveSpiritualNote(kind: string, ref: string, text: string) {
+  if (!text.trim()) return;
+  const existing = await prisma.spiritualNote.findFirst({ where: { kind, ref }, orderBy: { createdAt: "desc" } });
+  if (existing) await prisma.spiritualNote.update({ where: { id: existing.id }, data: { text: text.trim() } });
+  else await prisma.spiritualNote.create({ data: { kind, ref, text: text.trim() } });
+  await logReading("reflection");
+  revalidatePath("/spiritual");
+  revalidatePath("/character");
+}
+
+export async function deleteSpiritualNote(id: string) {
+  await prisma.spiritualNote.delete({ where: { id } }).catch(() => {});
+  revalidatePath("/spiritual");
 }
 
 export async function saveReview(period: string, periodKey: string, lesson: string, focus: string) {

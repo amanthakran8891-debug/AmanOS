@@ -3,14 +3,15 @@
 import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
 import type { DashboardData } from "@/lib/data";
-import { markCleanToday, addWater, toggleFlag, addFood, setField, setNote } from "@/app/actions";
+import { markCleanToday, addWater, toggleFlag, addFood, setField, setNote, markCheckin } from "@/app/actions";
 
 export function CheckinCard({ data }: { data: DashboardData }) {
   const { today, settings } = data;
   const hour = new Date().getHours();
   const [mode, setMode] = useState<"morning" | "night">(hour >= 16 ? "night" : "morning");
   const [pending, start] = useTransition();
-  const run = (fn: () => Promise<void>) => start(() => void fn());
+  // Every check-in tap also flags the day's check-in (a Discipline component).
+  const run = (fn: () => Promise<void>) => start(() => void (async () => { await fn(); await markCheckin(); })());
   const [gratitude, setGratitude] = useState(today.notes);
 
   const morning = [

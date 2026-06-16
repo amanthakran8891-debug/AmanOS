@@ -26,8 +26,61 @@ model Settings {
   weightGoal        Float?
   lastJointAt       DateTime? // anchor for the Hourglass + clean streak
   longestStreakDays Int       @default(0)
+
+  // ── NCLEX / AHPRA Command Center ──
+  nclexExamName  String   @default("NCLEX-RN")
+  nclexExamDate  DateTime? // exam day → drives the countdown
+  nclexDailyQGoal Int     @default(75) // target questions/day
+
+  // ── Recovery profile (relatively static inputs to the estimate engine) ──
+  recUseLevel       String  @default("chronic") // light | moderate | heavy | chronic
+  recJointsPerDay   Float   @default(3)
+  recUseYears       Float   @default(5) // total years of regular use
+  recActivityLevel  String  @default("moderate") // sedentary | light | moderate | active
+  recExerciseFreq   Int     @default(3) // gym/exercise days per week
+  recBaselineWeight Float? // kg — informs fat-stored THC assumption
+
+  // ── Recovery experience (so a relapse never zeroes everything) ──
+  recCumulativeCleanDays Int @default(0) // total clean days ever accrued
+  recRelapseCount        Int @default(0)
+
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+}
+
+/// One NCLEX study session — drives the question counter, accuracy, and weak-topic analytics.
+model NclexSession {
+  id        String   @id @default(cuid())
+  date      String // "YYYY-MM-DD"
+  topic     String // one of the 8 NCLEX-RN Client Need categories
+  questions Int      @default(0)
+  correct   Int      @default(0)
+  minutes   Int      @default(0)
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([date])
+  @@index([topic])
+}
+
+/// Daily recovery symptom check-in (each field 0–10). Feeds the recovery forecast.
+model SymptomLog {
+  id           String   @id @default(cuid())
+  date         String   @unique // "YYYY-MM-DD"
+  cravings     Int      @default(0)
+  anxiety      Int      @default(0)
+  irritability Int      @default(0)
+  sleep        Int      @default(0) // 0 = terrible, 10 = great
+  appetite     Int      @default(0)
+  motivation   Int      @default(0)
+  focus        Int      @default(0)
+  mood         Int      @default(0)
+  restlessness Int      @default(0)
+  boredom      Int      @default(0)
+  note         String?
+  createdAt    DateTime @default(now())
+
+  @@index([date])
 }
 
 /// User reflections per review period (week/month/quarter).
@@ -57,9 +110,11 @@ model DayLog {
   steps          Int      @default(0)
   nclexHours     Float    @default(0)
   nclexQuestions Int      @default(0)
+  nclexCorrect   Int      @default(0)
   bharatfareDone Boolean  @default(false)
   gymDone        Boolean  @default(false)
   spiritualDone  Boolean  @default(false)
+  checkinDone    Boolean  @default(false) // used the morning/night check-in
   lifeScore      Int      @default(0)
   notes          String?
   createdAt      DateTime @default(now())
@@ -120,4 +175,51 @@ model Achievement {
   id         String   @id @default(cuid())
   key        String   @unique
   unlockedAt DateTime @default(now())
+}
+
+// ── Spiritual Command Center ──────────────────────────────────────────────────
+
+/// Single-row "continue reading" position per scripture.
+model SpiritualProgress {
+  id           Int      @id @default(1)
+  gitaChapter  Int      @default(1)
+  gitaVerse    Int      @default(1)
+  chalisaLine  Int      @default(0) // index into the chalisa text (0 = doha)
+  updatedAt    DateTime @updatedAt
+}
+
+/// A bookmark or favourite on a verse/line. ref = "2.47" (gita) or "chaupai-12" (chalisa).
+model SpiritualMark {
+  id        String   @id @default(cuid())
+  kind      String // "gita" | "chalisa"
+  ref       String
+  type      String // "bookmark" | "favourite"
+  createdAt DateTime @default(now())
+
+  @@unique([kind, ref, type])
+  @@index([kind, type])
+}
+
+/// A reflection note attached to a verse/line.
+model SpiritualNote {
+  id        String   @id @default(cuid())
+  kind      String // "gita" | "chalisa"
+  ref       String
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kind, ref])
+}
+
+/// One reading event per day per scripture — powers streaks + Wisdom XP.
+model SpiritualReadingLog {
+  id        String   @id @default(cuid())
+  date      String // "YYYY-MM-DD"
+  kind      String // "gita" | "chalisa" | "reflection"
+  count     Int      @default(1)
+  createdAt DateTime @default(now())
+
+  @@unique([date, kind])
+  @@index([date])
 }

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import type { DashboardData } from "@/lib/data";
 
 export function FutureSelf({ data }: { data: DashboardData }) {
-  const { today, settings, score, streakDays, dragon } = data;
+  const { today, settings, score, streakDays, dragon, disciplineToday, combat } = data;
   const goalDays = settings.noJointGoalDays || 180;
   const streakPct = Math.min(100, Math.round((streakDays / goalDays) * 100));
   const weightToGo = today.weightKg != null && settings.weightGoal ? +(today.weightKg - settings.weightGoal).toFixed(1) : null;
@@ -23,6 +23,8 @@ export function FutureSelf({ data }: { data: DashboardData }) {
             <li>⚖ {today.weightKg ?? "—"} kg</li>
             <li>🔥 {streakDays} day streak</li>
             <li>⚡ Life Score {score.total}</li>
+            <li>⚖ Discipline {disciplineToday}</li>
+            <li>⚔ Lvl {combat.level} · {combat.rank}</li>
             <li>🐉 Dragon {dragon.power}%</li>
           </ul>
         </div>
@@ -32,8 +34,8 @@ export function FutureSelf({ data }: { data: DashboardData }) {
           <ul className="mt-2 space-y-1.5 text-sm text-white">
             <li>⚖ {settings.weightGoal || "set goal"} kg</li>
             <li>🔥 {goalDays} day clean streak</li>
+            <li>⚔ Lvl 100 · Freedom Master</li>
             <li>🎓 NCLEX Passed</li>
-            <li>✈ BharatFare Successful</li>
             <li>🐉 Dragon Defeated</li>
           </ul>
         </div>
@@ -43,6 +45,8 @@ export function FutureSelf({ data }: { data: DashboardData }) {
       <div className="mt-3 space-y-2.5">
         <Progress label={`Clean streak → ${goalDays} days`} pct={streakPct} right={`${Math.max(0, goalDays - streakDays)} to go`} color="#34f5c5" />
         <Progress label="Life Score → 90" pct={scorePct} right={`${Math.max(0, 90 - score.total)} to go`} color="#22d3ee" />
+        <Progress label="Discipline → 100" pct={disciplineToday} right={`${Math.max(0, 100 - disciplineToday)} to go`} color="#fbbf24" />
+        <Progress label="Level → 100 Freedom Master" pct={combat.level} right={`${Math.max(0, 100 - combat.level)} levels to go`} color="#a78bfa" />
         {weightToGo != null && (
           <Progress
             label={`Weight → ${settings.weightGoal} kg`}

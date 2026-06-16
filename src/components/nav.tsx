@@ -3,12 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const TABS = [
+type Tab = {
+  href: string;
+  label: string;
+  icon: string;
+  /** Optional prefix match for active-state (e.g. "/reviews" matches nested routes). */
+  match?: string;
+};
+
+const TABS: Tab[] = [
   { href: "/", label: "Home", icon: "⌂" },
   { href: "/today", label: "Today", icon: "✓" },
-  { href: "/entries", label: "Entries", icon: "✎" },
+  { href: "/discipline", label: "Discipline", icon: "⚖" },
+  { href: "/recovery", label: "Recovery", icon: "🛡" },
+  { href: "/nclex", label: "NCLEX", icon: "📚" },
   { href: "/gym", label: "Gym", icon: "🏋" },
-  { href: "/reviews/weekly", label: "Reviews", icon: "📈", match: "/reviews" },
   { href: "/settings", label: "Settings", icon: "⚙" },
 ];
 
