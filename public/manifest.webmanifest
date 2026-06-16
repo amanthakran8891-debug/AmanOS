@@ -1,0 +1,15 @@
+{
+  "name": "AmanOS — Life Command Center",
+  "short_name": "AmanOS",
+  "description": "Your life operating system. Quit joints, get strong, pass NCLEX, build BharatFare.",
+  "id": "/",
+  "scope": "/",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070a12",
+  "theme_color": "#070a12",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

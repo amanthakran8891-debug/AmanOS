@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(167, 139, 250, 0.12), transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, rgba(52, 245, 197, 0.1), transparent 55%),
+    #070a12;
+  color: #e8edf6;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  .card {
+    @apply rounded-3xl border border-line bg-surface/80 p-5 shadow-card backdrop-blur-xl;
+  }
+  .card-tight {
+    @apply rounded-2xl border border-line bg-surface/70 p-4 shadow-card backdrop-blur-xl;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2 px-3 py-1 text-xs font-medium text-slate-300;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition active:scale-[0.97];
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-surface-2 text-slate-200 hover:border-neon-cyan/50 hover:text-white;
+  }
+  .btn-neon {
+    @apply btn bg-neon-green/15 text-neon-green border border-neon-green/40 hover:bg-neon-green/25 shadow-glow;
+  }
+  .btn-danger {
+    @apply btn bg-neon-red/10 text-neon-red border border-neon-red/40 hover:bg-neon-red/20;
+  }
+  .label {
+    @apply text-[11px] font-semibold uppercase tracking-wider text-slate-400;
+  }
+  .stat-value {
+    @apply text-2xl font-bold tabular-nums text-white;
+  }
+  .input {
+    @apply w-full rounded-xl border border-line bg-surface-2 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-neon-cyan/60;
+  }
+}
+
+.glow-text {
+  text-shadow: 0 0 18px currentColor;
+}
+
+/* scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e2942;
+  border-radius: 8px;
+}

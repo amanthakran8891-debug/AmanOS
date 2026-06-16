@@ -1,0 +1,123 @@
+// AmanOS — Life Command Center
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // If your serverless Postgres needs a separate direct URL for migrations,
+  // set DIRECT_URL in .env and uncomment the next line:
+  // directUrl = env("DIRECT_URL")
+}
+
+/// Single-row settings / targets + recovery anchors.
+model Settings {
+  id                Int       @id @default(1)
+  proteinTarget     Int       @default(140)
+  waterTarget       Int       @default(3000) // ml
+  sleepTarget       Float     @default(8) // hours
+  caloriesTarget    Int       @default(2200)
+  stepsTarget       Int       @default(8000)
+  nclexHoursTarget  Float     @default(4)
+  dailyBudget       Int       @default(1000)
+  gymDaysTarget     Int       @default(4) // sessions per week
+  noJointGoalDays   Int       @default(90) // clean-streak goal
+  weightGoal        Float?
+  lastJointAt       DateTime? // anchor for the Hourglass + clean streak
+  longestStreakDays Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+/// User reflections per review period (week/month/quarter).
+model Review {
+  id        String   @id @default(cuid())
+  period    String // "week" | "month" | "quarter"
+  periodKey String // e.g. "2026-W24", "2026-06", "2026-Q2"
+  lesson    String?
+  focus     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([period, periodKey])
+}
+
+/// One snapshot row per calendar day (date = "YYYY-MM-DD").
+model DayLog {
+  id             String   @id @default(cuid())
+  date           String   @unique
+  jointClean     Boolean  @default(true)
+  weightKg       Float?
+  bodyFat        Float?
+  waterMl        Int      @default(0)
+  proteinG       Int      @default(0)
+  caloriesKcal   Int      @default(0)
+  sleepHours     Float    @default(0)
+  steps          Int      @default(0)
+  nclexHours     Float    @default(0)
+  nclexQuestions Int      @default(0)
+  bharatfareDone Boolean  @default(false)
+  gymDone        Boolean  @default(false)
+  spiritualDone  Boolean  @default(false)
+  lifeScore      Int      @default(0)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([date])
+}
+
+model FoodEntry {
+  id        String   @id @default(cuid())
+  date      String
+  name      String
+  proteinG  Int      @default(0)
+  calories  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([date])
+}
+
+model GymSet {
+  id        String   @id @default(cuid())
+  date      String
+  bodyPart  String
+  exercise  String
+  sets      Int      @default(0)
+  reps      Int      @default(0)
+  weightKg  Float    @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([date])
+  @@index([bodyPart])
+}
+
+model Expense {
+  id        String   @id @default(cuid())
+  date      String
+  category  String
+  amount    Float
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([date])
+}
+
+model JointEvent {
+  id        String   @id @default(cuid())
+  at        DateTime @default(now())
+  type      String // "relapse" | "craving"
+  craving   String? // "morning" | "afternoon" | "night"
+  trigger   String? // "stress" | "boredom" | "loneliness" | "habit" | "celebration"
+  intensity Int      @default(0)
+  note      String?
+
+  @@index([at])
+}
+
+model Achievement {
+  id         String   @id @default(cuid())
+  key        String   @unique
+  unlockedAt DateTime @default(now())
+}
