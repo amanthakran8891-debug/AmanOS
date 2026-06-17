@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import type { DragonState } from "@/lib/score";
+import { dragonHp } from "@/lib/damage";
 
 /**
  * Dragon 2.0 — the addiction, made to feel alive. It breathes, its eyes glow,
@@ -9,7 +10,8 @@ import type { DragonState } from "@/lib/score";
  * and clean streak grow. Six stages with smooth transitions.
  */
 export function Dragon({ dragon }: { dragon: DragonState }) {
-  const { power, size, stage, name, color } = dragon;
+  const { power, size, stage, color } = dragon;
+  const hp = dragonHp(power);
   const alive = stage < 6;
   const intensity = power / 100; // 0..1 — drives fire/smoke strength
   const breathDur = 2.2 + (1 - intensity) * 2.5; // weaker dragon breathes slower
@@ -26,24 +28,22 @@ export function Dragon({ dragon }: { dragon: DragonState }) {
 
       <div className="relative flex items-center justify-between">
         <div>
-          <p className="label">The Dragon</p>
+          <p className="label">🐉 The Dragon</p>
           <AnimatePresence mode="wait">
             <motion.h3
-              key={stage}
+              key={hp.stage}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="text-lg font-bold text-white"
+              className="text-lg font-extrabold text-white"
             >
-              Stage {stage} · <span style={{ color }} className="glow-text">{name}</span>
+              <span style={{ color }} className="glow-text">{hp.stage}</span>
             </motion.h3>
           </AnimatePresence>
         </div>
         <div className="text-right">
-          <p className="label">Power</p>
-          <motion.p key={power} initial={{ scale: 1.3, opacity: 0.5 }} animate={{ scale: 1, opacity: 1 }} className="text-2xl font-bold tabular-nums" style={{ color }}>
-            {power}%
-          </motion.p>
+          <p className="label">Threat</p>
+          <p className="text-lg font-extrabold tracking-wide" style={{ color: hp.threatColor }}>{hp.threat}</p>
         </div>
       </div>
 
@@ -101,10 +101,14 @@ export function Dragon({ dragon }: { dragon: DragonState }) {
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <Meter label="Health" value={dragon.health} color={color} />
-        <Meter label="Size" value={Math.round((size / 1.25) * 100)} color={color} />
-        <Meter label="Evolution" value={Math.round(((6 - stage) / 5) * 100)} color={color} />
+      <div>
+        <div className="flex items-baseline justify-between">
+          <span className="label">HP</span>
+          <span className="text-base font-extrabold tabular-nums" style={{ color }}>{hp.hp.toLocaleString()} <span className="text-xs font-normal text-slate-500">/ {hp.maxHp.toLocaleString()}</span></span>
+        </div>
+        <div className="mt-1 h-3 overflow-hidden rounded-full bg-bg" style={{ boxShadow: "inset 0 0 6px rgba(0,0,0,0.4)" }}>
+          <motion.div className="h-full rounded-full" style={{ background: `linear-gradient(90deg, ${color}, ${hp.threatColor})`, boxShadow: `0 0 10px ${color}88` }} animate={{ width: `${hp.pct}%` }} transition={{ duration: 1, ease: "easeOut" }} />
+        </div>
       </div>
 
       <p className="mt-3 text-center text-xs text-slate-400">

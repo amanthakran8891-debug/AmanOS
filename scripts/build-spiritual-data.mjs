@@ -21,6 +21,7 @@ const OUT = join(__dirname, "..", "src", "data", "spiritual");
 const BASE = "https://raw.githubusercontent.com/gita/gita/main/data";
 
 const ENGLISH_AUTHOR_PREF = [16, 21, 18, 19]; // Sivananda, Purohit, Adidevananda, Gambirananda
+const HINDI_AUTHOR_PREF = [17, 1]; // Swami Tejomayananda, Swami Ramsukhdas
 
 async function getJson(url) {
   const r = await fetch(url);
@@ -35,26 +36,32 @@ async function buildGita() {
     getJson(`${BASE}/translation.json`),
   ]);
 
-  // Index English translations by verse_id, honouring author preference.
+  // Index English + Hindi translations by verse_id, honouring author preference.
+  const pick = (map, t, pref) => {
+    const vid = t.verse_id ?? t.verseId;
+    const existing = map.get(vid);
+    const rank = (a) => { const i = pref.indexOf(a); return i === -1 ? 99 : i; };
+    if (!existing || rank(t.author_id) < rank(existing.author_id)) map.set(vid, t);
+  };
   const byVerse = new Map();
+  const byVerseHi = new Map();
   for (const t of translations) {
     const lang = (t.lang || t.language || "").toLowerCase();
-    if (lang !== "english") continue;
-    const vid = t.verse_id ?? t.verseId;
-    const existing = byVerse.get(vid);
-    const rank = (a) => { const i = ENGLISH_AUTHOR_PREF.indexOf(a); return i === -1 ? 99 : i; };
-    if (!existing || rank(t.author_id) < rank(existing.author_id)) byVerse.set(vid, t);
+    if (lang === "english") pick(byVerse, t, ENGLISH_AUTHOR_PREF);
+    else if (lang === "hindi") pick(byVerseHi, t, HINDI_AUTHOR_PREF);
   }
 
   const out = verses
     .map((v) => {
       const t = byVerse.get(v.id);
+      const th = byVerseHi.get(v.id);
       return {
         chapter: v.chapter_number,
         verse: v.verse_number,
         sanskrit: (v.slok || v.text || "").trim(),
         transliteration: (v.transliteration || "").trim(),
         translation: (t?.description || "").trim(),
+        hindi: (th?.description || "").trim(),
       };
     })
     .filter((v) => v.sanskrit)

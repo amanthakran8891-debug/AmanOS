@@ -13,7 +13,9 @@ export function FutureSelf({ data }: { data: DashboardData }) {
   return (
     <div className="card relative overflow-hidden">
       <motion.div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-neon-cyan/10 blur-3xl" animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 8, repeat: Infinity }} />
-      <p className="label text-neon-cyan">Future Self</p>
+      <p className="label text-neon-cyan">📡 Future Aman Status</p>
+      <p className="mt-0.5 text-sm font-bold leading-snug text-white">90 days ahead: Clean. Strong. NCLEX Passed. Working toward Australia.</p>
+      <p className="text-[11px] text-slate-400">Built one day at a time.</p>
 
       <div className="mt-3 grid grid-cols-2 gap-3">
         {/* Current */}

@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import type { GitaChapter, GitaVerse } from "@/lib/gita-library";
+import type { GitaChapter, GitaVerse, VerseLife } from "@/lib/gita-library";
 import { setGitaProgress, toggleSpiritualMark, saveSpiritualNote } from "@/app/actions";
 
-export function GitaReader({ chapter, verses, bookmarks, favourites, notes, current }: {
-  chapter: GitaChapter; verses: GitaVerse[]; bookmarks: string[]; favourites: string[]; notes: Record<string, string>; current: { chapter: number; verse: number };
+export function GitaReader({ chapter, verses, bookmarks, favourites, notes, life, current }: {
+  chapter: GitaChapter; verses: GitaVerse[]; bookmarks: string[]; favourites: string[]; notes: Record<string, string>; life: Record<string, VerseLife>; current: { chapter: number; verse: number };
 }) {
   const [pending, start] = useTransition();
   const run = (fn: () => Promise<void>) => start(() => void fn());
@@ -53,7 +53,15 @@ export function GitaReader({ chapter, verses, bookmarks, favourites, notes, curr
                 <div className="px-5 py-4">
                   {v.sanskrit && <p className="whitespace-pre-line text-center font-serif text-lg leading-relaxed text-[#5a2f17]">{v.sanskrit}</p>}
                   {v.transliteration && <p className="mt-2 text-center text-sm italic leading-relaxed text-[#8a7a55]">{v.transliteration}</p>}
-                  {v.translation && <p className="mt-3 text-[15px] leading-relaxed text-[#2a2620]">{v.translation}</p>}
+                  {v.translation && <p className="mt-3 text-[15px] leading-relaxed text-[#2a2620]"><span className="text-[10px] font-bold uppercase tracking-wide text-[#a8915a]">English</span><br />{v.translation}</p>}
+                  {v.hindi && <p className="mt-2 text-[15px] leading-relaxed text-[#3a3228]" lang="hi"><span className="text-[10px] font-bold uppercase tracking-wide text-[#a8915a]">हिंदी</span><br />{v.hindi}</p>}
+
+                  {life[ref] && (
+                    <div className="mt-3 rounded-lg border-l-2 border-[#c9a14a] bg-[#f1ead7] px-3 py-2.5">
+                      <p className="text-[13px] leading-relaxed text-[#5a4a2a]"><b>In simple words —</b> {life[ref].meaning}</p>
+                      <p className="mt-1.5 text-[13px] leading-relaxed text-[#5a4a2a]"><b>In your life —</b> {life[ref].application}</p>
+                    </div>
+                  )}
 
                   {notes[ref] && noteOpen !== ref && (
                     <p className="mt-3 rounded-lg border-l-2 border-[#c9a14a] bg-[#efe7d3] px-3 py-2 text-sm text-[#5a4a2a]">“{notes[ref]}”</p>

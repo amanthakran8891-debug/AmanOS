@@ -7,6 +7,9 @@ import type { DashboardData, CeoData } from "@/lib/data";
 import type { Verse } from "@/lib/gita";
 import type { Wisdom } from "@/lib/wisdom";
 import { CeoDashboard } from "./ceo-dashboard";
+import { DailyDamage } from "./daily-damage";
+import { RecoveryMission } from "./recovery-mission";
+import { CravingBattle } from "./craving-battle";
 import { Ring, MiniRing } from "./ring";
 import { Dragon } from "./dragon";
 import { Hourglass } from "./hourglass";
@@ -80,8 +83,15 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
 
       {/* CEO Dashboard — the cockpit. Am I winning? Biggest problem? What next? */}
       <section className="mt-1">
-        <CeoDashboard ceo={ceo} />
+        <CeoDashboard ceo={ceo} lifeScore={score.total} />
       </section>
+
+      {/* Recovery Mission — only after a relapse today; replaces the 90-day framing */}
+      {!today.jointClean && (
+        <section className="mt-3">
+          <RecoveryMission />
+        </section>
+      )}
 
       {/* Daily Wisdom (rotating header) */}
       <div className="mt-4">
@@ -151,6 +161,7 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
               <p className="text-[10px] text-slate-500">Enter battle →</p>
             </div>
           </Link>
+          <DailyDamage data={data} />
         </div>
       </section>
 
@@ -306,15 +317,34 @@ function CravingButton({ pending, onLog }: { pending: boolean; onLog: (c: string
   const [craving, setCraving] = useState<string>(CRAVING_TIMES[0]);
   const [trigger, setTrigger] = useState<string>(TRIGGERS[0]);
   const [intensity, setIntensity] = useState(5);
-  if (!open) return <button className="btn-ghost" onClick={() => setOpen(true)}>Log craving</button>;
+  const [battle, setBattle] = useState(false);
+
+  const submit = () => {
+    if (intensity >= 7) setBattle(true); // strong craving → Battle Mode; reward logs only on survive
+    else { onLog(craving, trigger, intensity); setOpen(false); }
+  };
+
   return (
-    <div className="flex w-full flex-wrap items-center gap-2 rounded-xl border border-line bg-surface-2 p-2">
-      <select className="input max-w-[120px]" value={craving} onChange={(e) => setCraving(e.target.value)}>{CRAVING_TIMES.map((c) => <option key={c}>{c}</option>)}</select>
-      <select className="input max-w-[120px]" value={trigger} onChange={(e) => setTrigger(e.target.value)}>{TRIGGERS.map((t) => <option key={t}>{t}</option>)}</select>
-      <input type="range" min={1} max={10} value={intensity} onChange={(e) => setIntensity(Number(e.target.value))} className="accent-neon-violet" />
-      <span className="text-xs text-slate-300">{intensity}/10</span>
-      <button className="btn-neon" disabled={pending} onClick={() => { onLog(craving, trigger, intensity); setOpen(false); }}>Save · resisted</button>
-    </div>
+    <>
+      {!open ? (
+        <button className="btn-ghost" onClick={() => setOpen(true)}>Log craving</button>
+      ) : (
+        <div className="flex w-full flex-wrap items-center gap-2 rounded-xl border border-line bg-surface-2 p-2">
+          <select className="input max-w-[120px]" value={craving} onChange={(e) => setCraving(e.target.value)}>{CRAVING_TIMES.map((c) => <option key={c}>{c}</option>)}</select>
+          <select className="input max-w-[120px]" value={trigger} onChange={(e) => setTrigger(e.target.value)}>{TRIGGERS.map((t) => <option key={t}>{t}</option>)}</select>
+          <input type="range" min={1} max={10} value={intensity} onChange={(e) => setIntensity(Number(e.target.value))} className="accent-neon-violet" />
+          <span className="text-xs text-slate-300">{intensity}/10</span>
+          <button className="btn-neon" disabled={pending} onClick={submit}>{intensity >= 7 ? "⚔ Fight Dragon" : "Save · resisted"}</button>
+        </div>
+      )}
+      {battle && (
+        <CravingBattle
+          intensity={intensity}
+          onSurvive={() => onLog(craving, trigger, intensity)}
+          onClose={() => { setBattle(false); setOpen(false); }}
+        />
+      )}
+    </>
   );
 }
 

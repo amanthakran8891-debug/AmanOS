@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import type { CombatData } from "@/lib/data";
 
 export function CombatClient({ data }: { data: CombatData }) {
-  const { xp, level, rank, nextRank, xpIntoLevel, xpToNext, levelProgressPct, combatPower, maxed, dragon, totals, bosses, equipment, chapters, battleLog, victory } = data;
+  const { xp, level, rank, nextRank, xpIntoLevel, xpToNext, levelProgressPct, combatPower, maxed, dragon, totals, bosses, equipment, chapters, battleLog, victory, campaign, lifetimeDamage, dragonsDefeated, todayDamage, todayCombo } = data;
 
   return (
     <div className="space-y-4">
@@ -44,6 +44,60 @@ export function CombatClient({ data }: { data: CombatData }) {
           <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-bg">
             <motion.div className="h-full rounded-full bg-gradient-to-r from-neon-violet to-neon-cyan" initial={{ width: 0 }} animate={{ width: `${levelProgressPct}%` }} transition={{ duration: 0.8 }} />
           </div>
+        </div>
+      </div>
+
+      {/* ── Dragon Arena — campaign command panel ── */}
+      <div className="card relative overflow-hidden" style={{ background: "linear-gradient(160deg, rgba(251,113,133,0.14), rgba(13,19,34,0.7))", borderColor: "rgba(251,113,133,0.4)" }}>
+        <div className="flex items-center justify-between">
+          <p className="label text-neon-red">⚔ Dragon Arena</p>
+          <span className="rounded-full bg-bg/50 px-2.5 py-0.5 text-[11px] font-bold text-slate-200">
+            Stage {campaign.stageNumber} / {5}
+          </span>
+        </div>
+
+        {/* Current dragon + HP */}
+        <p className="mt-2 text-xl font-extrabold text-white glow-text">{campaign.allCleared ? "All Dragons Defeated" : campaign.stageName}</p>
+        <div className="mt-2">
+          <div className="flex justify-between text-[11px] text-slate-300">
+            <span>HP</span>
+            <span className="tabular-nums">{campaign.currentHp.toLocaleString()} / {campaign.stageMaxHp.toLocaleString()}</span>
+          </div>
+          <div className="mt-1 h-3 overflow-hidden rounded-full bg-bg">
+            <motion.div className="h-full rounded-full bg-gradient-to-r from-neon-red to-neon-amber" initial={{ width: 0 }} animate={{ width: `${campaign.hpPct}%` }} transition={{ duration: 0.9 }} />
+          </div>
+          <p className="mt-1 text-[10px] text-slate-500">
+            {campaign.allCleared
+              ? "Every campaign dragon has fallen. Guard your freedom."
+              : `Next evolution at ${campaign.nextEvolutionAt.toLocaleString()} lifetime damage — ${campaign.toNextEvolution.toLocaleString()} to go.`}
+          </p>
+        </div>
+
+        {/* Core campaign stats */}
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+          <Arena label="Lifetime Dmg" v={lifetimeDamage.toLocaleString()} accent="#fb7185" />
+          <Arena label="Dragons Slain" v={`${dragonsDefeated} / 5`} accent="#34f5c5" />
+          <Arena label="Rank" v={rank} accent="#a78bfa" />
+          <Arena label="Level" v={`Lv ${level}`} accent="#22d3ee" />
+          <Arena label="XP" v={xp.toLocaleString()} accent="#fbbf24" />
+          <Arena label="Combat Power" v={combatPower} accent="#a3e635" />
+        </div>
+        <p className="mt-1.5 text-center text-[11px] font-medium text-neon-green/90">Lifetime Damage is earned only from logged real actions.</p>
+
+        {/* Today */}
+        <div className="mt-3 flex items-center justify-between rounded-xl border border-line bg-bg/40 px-3 py-2">
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-slate-500">Today&apos;s Damage</p>
+            <p className="text-lg font-extrabold tabular-nums text-neon-red">{todayDamage.total.toLocaleString()}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-wide text-slate-500">Today&apos;s Combo</p>
+            <p className="text-sm font-bold text-neon-amber">{todayCombo.label ?? (todayDamage.comboLabel ?? "No combo yet")}</p>
+          </div>
+        </div>
+        <div className="mt-3 rounded-xl border border-neon-green/30 bg-neon-green/5 px-3 py-2 text-center">
+          <p className="text-xs font-bold text-neon-green">Tapping is symbolic. Progress comes from what you actually do.</p>
+          <p className="mt-0.5 text-[10px] text-slate-400">Every number here is from real logged habits — clean time, cravings resisted, NCLEX, gym, protein, water, Gita, BharatFare.</p>
         </div>
       </div>
 
@@ -199,6 +253,15 @@ function Tot({ label, v }: { label: string; v: number }) {
   return (
     <div className="rounded-lg border border-line bg-surface-2 py-2">
       <p className="text-lg font-extrabold tabular-nums text-white">{v}</p>
+      <p className="text-[9px] uppercase tracking-wide text-slate-500">{label}</p>
+    </div>
+  );
+}
+
+function Arena({ label, v, accent }: { label: string; v: string | number; accent: string }) {
+  return (
+    <div className="rounded-lg border border-line bg-bg/40 py-2">
+      <p className="text-base font-extrabold leading-tight tabular-nums" style={{ color: accent }}>{v}</p>
       <p className="text-[9px] uppercase tracking-wide text-slate-500">{label}</p>
     </div>
   );

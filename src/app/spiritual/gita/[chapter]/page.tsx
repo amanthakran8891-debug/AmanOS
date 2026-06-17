@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getChapter, chapterVerses } from "@/lib/gita-library";
+import { getChapter, chapterVerses, verseLife, type VerseLife } from "@/lib/gita-library";
 import { getSpiritualData } from "@/lib/data";
 import { GitaReader } from "@/components/spiritual/gita-reader";
 
@@ -18,6 +18,10 @@ export default async function GitaChapterPage({ params }: { params: Promise<{ ch
   const notes: Record<string, string> = {};
   for (const note of sp.notes) if (note.kind === "gita" && note.ref.startsWith(`${n}.`)) notes[note.ref] = note.text;
 
+  // "Relate to your life" reflections for any curated verses in this chapter.
+  const life: Record<string, VerseLife> = {};
+  for (const v of verses) { const l = verseLife(v.chapter, v.verse); if (l) life[`${v.chapter}.${v.verse}`] = l; }
+
   return (
     <GitaReader
       chapter={ch}
@@ -25,6 +29,7 @@ export default async function GitaChapterPage({ params }: { params: Promise<{ ch
       bookmarks={bookmarks}
       favourites={favourites}
       notes={notes}
+      life={life}
       current={{ chapter: sp.gita.chapter, verse: sp.gita.verse }}
     />
   );

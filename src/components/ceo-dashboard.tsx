@@ -5,22 +5,28 @@ import { motion } from "framer-motion";
 import type { CeoData } from "@/lib/data";
 import { trendMeta, GRADE_COLOR, type Grade } from "@/lib/ceo";
 
-export function CeoDashboard({ ceo }: { ceo: CeoData }) {
+export function CeoDashboard({ ceo, lifeScore }: { ceo: CeoData; lifeScore?: number }) {
   const { grade, gradeColor, ceoScore, winning, status, warning, priority, momentum, weekly, history } = ceo;
   const [showMeeting, setShowMeeting] = useState(false);
+  const primaryThreat = `Cannabis Relapse · ${status.dragonThreat} threat`;
 
   return (
     <div className="card relative overflow-hidden" style={{ background: `linear-gradient(165deg, ${gradeColor}1a, rgba(13,19,34,0.7))`, borderColor: `${gradeColor}44` }}>
-      {/* Header */}
+      {/* CEO Status Report */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">CEO Dashboard</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">CEO Status Report</p>
           <p className="mt-0.5 text-lg font-bold text-white">{winning}</p>
         </div>
         <div className="flex flex-col items-center">
           <div className="grid h-16 w-16 place-items-center rounded-2xl text-4xl font-black" style={{ background: `${gradeColor}22`, color: gradeColor, border: `2px solid ${gradeColor}` }}>{grade}</div>
-          <p className="mt-1 text-[10px] tabular-nums text-slate-400">CEO {ceoScore}</p>
+          <p className="mt-1 text-[10px] tabular-nums text-slate-400">{lifeScore != null ? `Life Score ${lifeScore}` : `CEO ${ceoScore}`}</p>
         </div>
+      </div>
+      <div className="mt-3 space-y-1 rounded-xl border border-line bg-bg/40 p-3 text-xs">
+        <p><span className="font-bold text-neon-red">⚠ Primary Threat:</span> <span className="text-slate-200">{primaryThreat}</span></p>
+        <p><span className="font-bold text-neon-green">↑ Primary Opportunity:</span> <span className="text-slate-200">NCLEX + BharatFare</span></p>
+        <p><span className="font-bold text-neon-cyan">🎯 Today&apos;s Win Condition:</span> <span className="font-semibold text-white">{priority.title}</span></p>
       </div>
 
       {/* Status grid */}

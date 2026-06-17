@@ -177,6 +177,20 @@ model Achievement {
   unlockedAt DateTime @default(now())
 }
 
+/// Singleton Dragon campaign record. lifetimeDamage is a MATERIALIZED, monotonic
+/// total recomputed from logged DayLogs on every load (real actions only — never
+/// incremented by taps). It ratchets up so dragonsDefeated can never be un-earned
+/// if past days are edited or damage values are retuned — mirroring the rule that
+/// a relapse never erases progress already earned. dragonsDefeated + stageIndex
+/// are derived from lifetimeDamage and stored for cheap reads.
+model DragonState {
+  id              Int      @id @default(1)
+  lifetimeDamage  Int      @default(0)
+  dragonsDefeated Int      @default(0)
+  stageIndex      Int      @default(0)
+  updatedAt       DateTime @updatedAt
+}
+
 // ── Spiritual Command Center ──────────────────────────────────────────────────
 
 /// Single-row "continue reading" position per scripture.

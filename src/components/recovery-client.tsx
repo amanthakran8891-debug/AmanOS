@@ -32,6 +32,9 @@ export function RecoveryClient({ data }: { data: RecoveryData }) {
   const scores = live ?? model.scores;
   const freedom = scores.freedom;
   const bp = bodyPhase(cleanDays);
+  const dayFloat = data.lastJointAt ? Math.max(0, (Date.now() - new Date(data.lastJointAt).getTime()) / 86400000) : cleanDays;
+  const prevScores = recoveryScoresAt(Math.max(0, dayFloat - 1), data.liveInputs.level as UseLevel, data.liveInputs.symptomAvg, data.liveInputs.longestStreak);
+  const journeyPct = Math.round((cleanDays / 365) * 1000) / 10;
 
   return (
     <div className="space-y-4">
@@ -42,6 +45,7 @@ export function RecoveryClient({ data }: { data: RecoveryData }) {
             <p className="label">Freedom Score · live</p>
             <p className="text-5xl font-extrabold tabular-nums text-white glow-text">{freedom.toFixed(2)}<span className="text-2xl text-slate-400">%</span></p>
             <p className="text-xs text-slate-400">{cleanDays} clean {cleanDays === 1 ? "day" : "days"} · best ever {longestStreak}d</p>
+            <p className="mt-1 text-[11px] font-semibold text-neon-cyan">📡 Recovery Journey · Day {cleanDays} of 365 · {journeyPct}%</p>
           </div>
           <FreedomRing pct={freedom} />
         </div>
@@ -68,7 +72,8 @@ export function RecoveryClient({ data }: { data: RecoveryData }) {
                   <span className="text-lg">{s.icon}</span>
                   <span className="text-base font-bold tabular-nums" style={{ color: s.color }}>{v.toFixed(2)}%</span>
                 </div>
-                <p className="mt-1 text-[11px] font-semibold text-slate-300">{s.label}</p>
+                <p className="text-right text-[10px] font-bold text-neon-green">▲ +{Math.max(0, v - prevScores[s.key]).toFixed(1)}% today</p>
+                <p className="mt-0.5 text-[11px] font-semibold text-slate-300">{s.label}</p>
                 <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-bg">
                   <div className="h-full rounded-full transition-all duration-700" style={{ width: `${v}%`, background: s.color }} />
                 </div>

@@ -4,12 +4,26 @@
 
 import chaptersData from "@/data/spiritual/gita-chapters.json";
 import versesData from "@/data/spiritual/gita-verses.json";
+import { VERSES as LIFE_VERSES } from "@/lib/gita";
 
 export interface GitaChapter {
   number: number; sanskrit: string; transliteration: string; translation: string;
   meaning: string; versesCount: number; summary: string;
 }
-export interface GitaVerse { chapter: number; verse: number; sanskrit: string; transliteration: string; translation: string }
+export interface GitaVerse { chapter: number; verse: number; sanskrit: string; transliteration: string; translation: string; hindi?: string }
+
+// ── "Relate to your life" layer — reuses the curated reflections in gita.ts.
+// meaning = plain-words explanation · application = how it applies to your life.
+export interface VerseLife { meaning: string; application: string }
+const LIFE = new Map<string, VerseLife>();
+for (const v of LIFE_VERSES) {
+  const m = v.ref.match(/(\d+)\.(\d+)/); // "Bhagavad Gita 2.47" / "2.62-63" → 2.47 / 2.62
+  if (m) LIFE.set(`${m[1]}.${m[2]}`, { meaning: v.meaning, application: v.application });
+}
+/** Plain-language meaning + life application for a verse, if one is curated. */
+export function verseLife(chapter: number, verse: number): VerseLife | null {
+  return LIFE.get(`${chapter}.${verse}`) ?? null;
+}
 
 export const CHAPTERS = (chaptersData.chapters as GitaChapter[]).slice().sort((a, b) => a.number - b.number);
 const VERSES = (versesData.verses as GitaVerse[]);

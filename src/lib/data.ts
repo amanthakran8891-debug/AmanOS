@@ -7,6 +7,7 @@ import { topicStats, weakTopics, studyStreak, examCountdown, readiness } from "@
 import { recoveryModel, recoveryScoresAt, SYMPTOM_KEYS, TIMELINE as RECOVERY_TIMELINE, type SymptomKey, type UseLevel } from "@/lib/recovery";
 import { dailyScore, driftFlags, momentum, weeklyReport, type DayFacts, type DiscTargets } from "@/lib/discipline";
 import { computeCombat } from "@/lib/combat";
+import { dailyDamage, lifetimeDamageFromDays, dragonCampaign } from "@/lib/damage";
 import { computeCeo } from "@/lib/ceo";
 import { computeRpg } from "@/lib/rpg";
 import { progressPct as gitaProgressPct, LOADED_VERSES, TOTAL_VERSES, HAS_VERSES, getVerse } from "@/lib/gita-library";
@@ -464,7 +465,40 @@ async function buildCombatState(settings: SettingsRow) {
     dragonPower = dragonState(0, currentStreak, { cravingIntensity: craving }).power;
   }
 
-  return computeCombat({ days: facts, targets: targetsDisc, currentStreak, longestStreak, avg7Discipline, dragonPower, craving });
+  const combat = computeCombat({ days: facts, targets: targetsDisc, currentStreak, longestStreak, avg7Discipline, dragonPower, craving });
+
+  // ── Lifetime Damage + campaign (real logged actions only, persisted) ──
+  const dmgTargets = { nclexHoursTarget: settings.nclexHoursTarget, proteinTarget: settings.proteinTarget, waterTarget: settings.waterTarget };
+  const computedLifetime = lifetimeDamageFromDays(allDays, dmgTargets);
+  // Monotonic ratchet: never let a stored achievement regress if a past day is
+  // edited down or damage values are retuned (a defeated dragon stays defeated).
+  const prevState = await prisma.dragonState.upsert({ where: { id: 1 }, create: { id: 1 }, update: {} });
+  const lifetimeDamage = Math.max(prevState.lifetimeDamage, computedLifetime);
+  const campaign = dragonCampaign(lifetimeDamage);
+  if (
+    lifetimeDamage !== prevState.lifetimeDamage ||
+    campaign.dragonsDefeated !== prevState.dragonsDefeated ||
+    campaign.stageIndex !== prevState.stageIndex
+  ) {
+    await prisma.dragonState.update({
+      where: { id: 1 },
+      data: { lifetimeDamage, dragonsDefeated: campaign.dragonsDefeated, stageIndex: campaign.stageIndex },
+    });
+  }
+
+  const todayDamage = dailyDamage(
+    {
+      jointClean: todayRow?.jointClean ?? false,
+      gymDone: todayRow?.gymDone ?? false,
+      nclexHours: todayRow?.nclexHours ?? 0,
+      proteinG: todayRow?.proteinG ?? 0,
+      spiritualDone: todayRow?.spiritualDone ?? false,
+      waterMl: todayRow?.waterMl ?? 0,
+    },
+    dmgTargets,
+  );
+
+  return { ...combat, campaign, lifetimeDamage, dragonsDefeated: campaign.dragonsDefeated, todayDamage };
 }
 
 export async function getCombatData() {

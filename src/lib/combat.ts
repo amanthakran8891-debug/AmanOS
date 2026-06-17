@@ -13,6 +13,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { dailyScore, type DayFacts, type DiscTargets } from "@/lib/discipline";
+import { comboMultiplier } from "@/lib/damage";
 
 export const XP = {
   clean: 20,
@@ -106,6 +107,7 @@ export interface CombatState {
   currentChapter: number;
   battleLog: BattleDay[];
   victory: null | { milestone: number; bossName: string; improved: string; gained: string; next: string };
+  todayCombo: { mult: number; label: string | null };
 }
 
 export interface CombatInput {
@@ -169,15 +171,31 @@ export function computeCombat(input: CombatInput): CombatState {
     }
   }
 
-  let xp =
-    totals.cleanDays * XP.clean +
-    totals.studyDays * XP.nclex +
-    totals.gymDays * XP.gym +
-    totals.proteinDays * XP.protein +
-    totals.sleepDays * XP.sleep +
-    totals.bharatfareDays * XP.bharatfare +
-    totals.weeklyMissions * XP.weeklyMission;
+  // XP is summed PER DAY so the combo multiplier (same one the damage engine
+  // uses) compounds a day's stacked habits — Gym+NCLEX ×1.5, +Clean ×2. Still
+  // 100% real logged actions: a day with no logged habit earns nothing, and
+  // tapping is never an input.
+  let xp = 0;
+  for (const d of asc) {
+    const dayBase =
+      (hit.clean(d) ? XP.clean : 0) +
+      (hit.nclex(d) ? XP.nclex : 0) +
+      (hit.gym(d) ? XP.gym : 0) +
+      (hit.protein(d) ? XP.protein : 0) +
+      (hit.sleep(d) ? XP.sleep : 0) +
+      (hit.bharatfare(d) ? XP.bharatfare : 0);
+    if (dayBase === 0) continue;
+    const { mult } = comboMultiplier(hit.gym(d), hit.nclex(d), hit.clean(d));
+    xp += Math.round(dayBase * mult);
+  }
+  xp += totals.weeklyMissions * XP.weeklyMission;
   xp += BOSSES.filter((b) => longestStreak >= b.day).reduce((s, b) => s + b.reward, 0);
+
+  // Today's combo (for the Arena) — derived from today's real logged habits.
+  const todayFacts = desc[0];
+  const todayCombo = todayFacts
+    ? comboMultiplier(hit.gym(todayFacts), hit.nclex(todayFacts), hit.clean(todayFacts))
+    : { mult: 1, label: null };
 
   const level = levelFromXp(xp);
   const maxed = level >= 100;
@@ -270,7 +288,7 @@ export function computeCombat(input: CombatInput): CombatState {
     xp, level, rank: rankForLevel(level).name, nextRank: nextRank(level),
     xpIntoLevel, xpForThisLevel: xpToNext, xpToNext, levelProgressPct, combatPower, maxed,
     dragon: { health, armor, attackPower, threat, threatColor },
-    totals, bosses, equipment, chapters, currentChapter, battleLog, victory,
+    totals, bosses, equipment, chapters, currentChapter, battleLog, victory, todayCombo,
   };
 }
 
