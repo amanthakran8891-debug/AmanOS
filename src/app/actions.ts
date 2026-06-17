@@ -146,6 +146,35 @@ export async function addCraving(craving: string, trigger: string, intensity: nu
   revalidatePath("/");
 }
 
+// ── Craving Analytics Engine ─────────────────────────────────────────────────
+/** Log a craving with full context + outcome (won = resisted, lost = used). */
+export async function logCraving(input: {
+  intensity: number; trigger?: string; location?: string; emotion?: string; outcome: "won" | "lost"; note?: string;
+}) {
+  await prisma.craving.create({
+    data: {
+      intensity: Math.min(10, Math.max(1, Math.round(input.intensity || 5))),
+      trigger: input.trigger || null,
+      location: input.location || null,
+      emotion: input.emotion || null,
+      outcome: input.outcome === "lost" ? "lost" : "won",
+      note: input.note || null,
+    },
+  });
+  // A lost craving is a relapse signal — also record it on the cannabis timeline.
+  if (input.outcome === "lost") {
+    await prisma.jointEvent.create({ data: { type: "relapse", trigger: input.trigger || null, intensity: Math.round(input.intensity || 5) } }).catch(() => {});
+  }
+  revalidatePath("/cravings");
+  revalidatePath("/recovery");
+  revalidatePath("/");
+}
+
+export async function removeCraving(id: string) {
+  await prisma.craving.delete({ where: { id } }).catch(() => {});
+  revalidatePath("/cravings");
+}
+
 // ── Edit / delete (correct mistakes easily) ──────────────────────────────────
 export async function updateFood(id: string, name: string, proteinG: number, calories: number) {
   const entry = await prisma.foodEntry.findUnique({ where: { id } });

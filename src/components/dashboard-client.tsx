@@ -220,6 +220,13 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
             <p className="text-[11px] text-slate-400">Questions, accuracy, exam countdown →</p>
           </div>
         </Link>
+        <Link href="/cravings" className="card flex items-center gap-3 transition hover:border-amber-400/50" style={{ background: "linear-gradient(160deg, rgba(245,158,11,0.10), rgba(13,19,34,0.55))" }}>
+          <span className="text-3xl">⚔️</span>
+          <div>
+            <p className="text-sm font-bold text-white">Craving Analytics</p>
+            <p className="text-[11px] text-slate-400">Danger windows, triggers, victory rate →</p>
+          </div>
+        </Link>
       </section>
 
       {/* Today's Mission */}

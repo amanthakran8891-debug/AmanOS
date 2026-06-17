@@ -171,6 +171,23 @@ model JointEvent {
   @@index([at])
 }
 
+/// Every craving, stored forever — powers the Craving Analytics Engine.
+/// Richer than JointEvent: adds location, emotion and a won/lost outcome so we
+/// can compute victory rate, heatmaps and "most dangerous hour/day/location".
+model Craving {
+  id        String   @id @default(cuid())
+  at        DateTime @default(now())
+  intensity Int      @default(5) // 1..10
+  trigger   String? // boredom | stress | habit | social | celebration | loneliness | ...
+  location  String? // bedroom | living-room | work | car | outside | ...
+  emotion   String? // stress | boredom | anxiety | sadness | happy | tired | ...
+  outcome   String   @default("won") // "won" (resisted) | "lost" (used)
+  note      String?
+
+  @@index([at])
+  @@index([outcome])
+}
+
 model Achievement {
   id         String   @id @default(cuid())
   key        String   @unique
