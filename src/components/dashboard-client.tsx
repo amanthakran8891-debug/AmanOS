@@ -114,7 +114,7 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
         <DragonAttackMode />
         <div className="grid gap-4 lg:grid-cols-2">
           <RiskForecast forecast={data.forecast} compact />
-          <RecoveryXpCard xp={data.recoveryXp} />
+          <RecoveryXpCard xp={data.recoveryXp} lastJointAt={settings.lastJointAt} />
         </div>
         <Link href="/intelligence" className="card flex items-center justify-between transition hover:border-neon-cyan/50" style={{ background: "linear-gradient(160deg, rgba(34,211,238,0.10), rgba(13,19,34,0.55))" }}>
           <div>

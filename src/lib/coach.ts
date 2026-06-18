@@ -20,46 +20,38 @@ export interface CoachContext {
   dangerWindowLabel: string | null;
   protectiveToday: string[];
   gymDoneToday: boolean;
+  nextBestMove: string | null; // prevention action from the prediction engine
   cleanWeeksMilestoneSoon: { day: number; daysAway: number } | null;
 }
 
 /** The exact prompt a future LLM would receive — single swap point. */
 export function buildCoachPrompt(ctx: CoachContext): string {
   return [
-    `You are ${ctx.name}'s recovery coach. Write a 2–3 sentence daily briefing.`,
-    `Be direct, warm, and specific. No fluff. Use their data:`,
-    `- Clean streak: ${ctx.streakDays} days`,
-    `- Today's relapse risk: ${ctx.riskBand} (${ctx.riskScore}/100)`,
-    `- Top risk driver: ${ctx.topRiskReason ?? "none"}`,
-    `- Most dangerous window: ${ctx.dangerWindowLabel ?? "unknown"}`,
-    `- Protective wins already done today: ${ctx.protectiveToday.join(", ") || "none yet"}`,
-    `End with one concrete directive for the next few hours.`,
+    `You are ${ctx.name}'s recovery field commander. Output a SHORT, command-style briefing.`,
+    `Format exactly: "Risk: <band>. Danger window: <window>. Today's command: <prevention action(s)>. Emergency: <one emergency action>."`,
+    `Be terse and imperative. No pep talk. Use their data:`,
+    `- Relapse risk: ${ctx.riskBand} (${ctx.riskScore}/100)`,
+    `- Danger window: ${ctx.dangerWindowLabel ?? "none flagged"}`,
+    `- Highest-leverage missing habit: ${ctx.nextBestMove ?? "none"}`,
+    `Always include exactly one prevention action and one emergency action.`,
   ].join("\n");
 }
 
-/** Deterministic, data-driven briefing — the always-available default. */
+/** Deterministic, command-style briefing — the always-available default.
+ *  Always carries one prevention action and one emergency action. */
 export function ruleBasedBriefing(ctx: CoachContext): string {
-  const parts: string[] = [];
-  const risk = ctx.riskBand.toLowerCase();
+  const window = ctx.dangerWindowLabel ?? "none flagged";
 
-  // Opening — streak framing.
-  if (ctx.streakDays === 0) parts.push(`${ctx.name}, day zero is a decision, not a failure — let's stack a clean day.`);
-  else if (ctx.streakDays < 7) parts.push(`${ctx.name}, ${ctx.streakDays} day${ctx.streakDays === 1 ? "" : "s"} clean — the streak is still fragile, so protect it.`);
-  else parts.push(`${ctx.name}, your ${ctx.streakDays}-day streak is real momentum — don't give it back.`);
+  // Prevention command — the highest-leverage missing habit, plus a time-guard.
+  const prevention = ctx.nextBestMove ?? "hold your routine";
+  const guard = ctx.dangerWindowLabel
+    ? `No phone in your room during ${ctx.dangerWindowLabel}`
+    : "Guard your evening routine";
 
-  // Risk + the why.
-  if (ctx.topRiskReason) parts.push(`Today your greatest risk is ${ctx.topRiskReason.toLowerCase()}.`);
-  else parts.push(`Today's risk reads ${risk}.`);
+  // Emergency command — always present.
+  const emergency = "if a craving hits, launch Dragon Attack Mode — do not negotiate";
 
-  // The directive.
-  const directives: string[] = [];
-  if (!ctx.gymDoneToday) directives.push("get the gym done before evening — it deals double damage");
-  if (ctx.dangerWindowLabel) directives.push(`don't negotiate with cravings around ${ctx.dangerWindowLabel}`);
-  if (directives.length === 0 && ctx.protectiveToday.length) directives.push("keep stacking the wins you've already started");
-  if (directives.length === 0) directives.push("just win today");
-
-  parts.push(`Plan: ${directives.slice(0, 2).join(", and ")}.`);
-  return parts.join(" ");
+  return `Risk: ${ctx.riskBand}. Danger window: ${window}. Today's command: ${prevention}. ${guard}. Emergency: ${emergency}.`;
 }
 
 export type BriefingGenerator = (prompt: string) => Promise<string>;

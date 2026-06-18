@@ -13,6 +13,17 @@ export function DragonIntelPanel({ intel }: { intel: DragonIntel }) {
       </div>
       <p className="mt-1 text-xs text-slate-400">{intel.summary}</p>
 
+      {intel.recommendedAttack && (
+        <div className="mt-3 flex items-center gap-3 rounded-xl border border-neon-violet/40 bg-neon-violet/10 px-3 py-2.5">
+          <span className="text-2xl">{intel.recommendedAttack.icon}</span>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-neon-violet">⚔ Recommended attack now</p>
+            <p className="text-sm font-bold text-white">{intel.recommendedAttack.label}</p>
+            <p className="text-[11px] text-slate-400">{intel.recommendedAttack.why}</p>
+          </div>
+        </div>
+      )}
+
       {/* Weaknesses */}
       <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-neon-green/80">Weaknesses — exploit these</p>
       <div className="mt-2 grid gap-2 sm:grid-cols-2">

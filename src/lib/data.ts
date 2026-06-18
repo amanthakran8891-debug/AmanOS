@@ -814,7 +814,8 @@ async function loadRecoveryIntel(settings: SettingsRow, todayRow: DayLogRow) {
   const coach = ruleBasedBriefing({
     name: "Aman", streakDays, riskBand: forecast.band, riskScore: forecast.score,
     topRiskReason: forecast.reasons[0] ?? null, dangerWindowLabel: forecast.window?.label ?? null,
-    protectiveToday: forecast.protective, gymDoneToday: todayFacts.gymDone, cleanWeeksMilestoneSoon: null,
+    protectiveToday: forecast.protective, gymDoneToday: todayFacts.gymDone,
+    nextBestMove: forecast.nextBestMove?.action ?? null, cleanWeeksMilestoneSoon: null,
   });
 
   // ── #4 Weekly Intelligence Report (last 42 days) ──

@@ -47,6 +47,17 @@ export function RiskForecast({ forecast, compact = false }: { forecast: RiskFore
         </div>
       )}
 
+      {f.nextBestMove && (
+        <div className="mt-3 flex items-start gap-2 rounded-xl border border-neon-cyan/30 bg-neon-cyan/5 px-3 py-2">
+          <span className="text-lg">🎯</span>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-neon-cyan">Next best move</p>
+            <p className="text-sm font-bold text-white">{f.nextBestMove.action}</p>
+            <p className="text-[11px] text-slate-400">{f.nextBestMove.reason}</p>
+          </div>
+        </div>
+      )}
+
       {!compact && (
         <>
           {f.reasons.length > 0 && (

@@ -7,7 +7,9 @@ import { milestoneLabel } from "@/lib/clean-time";
 
 export function FutureMessages({ messages, next }: { messages: FutureMessage[]; next: { day: number; title: string; daysAway: number } | null }) {
   const firstUnlocked = messages.find((m) => m.isLatest)?.day ?? messages.find((m) => m.unlocked)?.day ?? null;
-  const [openDay, setOpenDay] = useState<number | null>(firstUnlocked);
+  // Default to the latest unlocked letter, or the first locked one as a teaser.
+  const defaultOpen = firstUnlocked ?? messages.find((m) => !m.unlocked)?.day ?? null;
+  const [openDay, setOpenDay] = useState<number | null>(defaultOpen);
   const open = messages.find((m) => m.day === openDay) ?? null;
 
   return (
@@ -19,14 +21,13 @@ export function FutureMessages({ messages, next }: { messages: FutureMessage[]; 
         {messages.map((m) => (
           <button
             key={m.day}
-            disabled={!m.unlocked}
             onClick={() => setOpenDay(m.day)}
             className={`rounded-full border px-3 py-1 text-[11px] font-bold transition ${
-              openDay === m.day && m.unlocked
+              openDay === m.day
                 ? "border-amber-400/60 bg-amber-400/15 text-amber-200"
                 : m.unlocked
                   ? "border-line bg-surface-2 text-slate-300 hover:border-amber-400/40"
-                  : "border-line bg-surface-2/40 text-slate-600"
+                  : "border-line bg-surface-2/40 text-slate-500 hover:border-amber-400/30"
             }`}
           >
             {m.unlocked ? "🔓" : "🔒"} {milestoneLabel(m.day)} · {m.title}
@@ -44,6 +45,21 @@ export function FutureMessages({ messages, next }: { messages: FutureMessage[]; 
           <p className="text-[11px] font-bold uppercase tracking-wide text-amber-300/80">{milestoneLabel(open.day)} — {open.title}</p>
           <p className="mt-1.5 text-[15px] leading-relaxed text-slate-100">“{open.message}”</p>
           <p className="mt-2 text-right text-xs italic text-amber-300/70">— Future Aman</p>
+        </motion.div>
+      )}
+
+      {open && !open.unlocked && (
+        <motion.div
+          key={`locked-${open.day}`}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative mt-3 overflow-hidden rounded-2xl border border-line bg-surface-2/50 p-4"
+        >
+          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">🔒 {milestoneLabel(open.day)} — {open.title}</p>
+          <p className="mt-1.5 select-none text-[15px] italic leading-relaxed text-slate-300" style={{ filter: "blur(3px)" }}>“{open.preview}”</p>
+          <p className="mt-2 text-[11px] font-semibold text-amber-300/80">
+            Reach {milestoneLabel(open.day)} clean to unlock this letter from your future self.
+          </p>
         </motion.div>
       )}
 

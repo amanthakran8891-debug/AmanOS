@@ -27,9 +27,17 @@ export interface DragonAttackVector {
   severity: "high" | "medium" | "low";
 }
 
+export interface RecommendedAttack {
+  key: string;
+  icon: string;
+  label: string;
+  why: string;
+}
+
 export interface DragonIntel {
   weaknesses: Weakness[];
   attacks: DragonAttackVector[];
+  recommendedAttack: RecommendedAttack | null; // the next weakness to exploit now
   exploitedCount: number;
   totalWeaknesses: number;
   exploitPct: number;
@@ -105,6 +113,20 @@ export function computeDragonIntel(input: DragonIntelInput): DragonIntel {
     attacks.push({ key: "unknown", icon: "❔", label: "Unknown attacks", detail: "Log cravings to reveal the dragon's tactics", severity: "low" });
   }
 
+  // Recommended attack now — first unmet weakness in impact order.
+  const WHY: Record<string, string> = {
+    gym: "Strike the deepest wound first — 2× damage.",
+    nclex: "Occupy the mind — raises craving resistance.",
+    protein: "Deny the foothold — 1.5× damage.",
+    spiritual: "Weaken the craving itself.",
+  };
+  const order = ["gym", "nclex", "protein", "spiritual"];
+  let recommendedAttack: RecommendedAttack | null = null;
+  for (const k of order) {
+    const w = weaknesses.find((x) => x.key === k);
+    if (w && !w.exploitedToday) { recommendedAttack = { key: w.key, icon: w.icon, label: w.label, why: WHY[k] }; break; }
+  }
+
   const summary =
     exploitedCount >= 3
       ? "You're exploiting most weaknesses — the dragon is on the back foot."
@@ -115,6 +137,7 @@ export function computeDragonIntel(input: DragonIntelInput): DragonIntel {
   return {
     weaknesses,
     attacks,
+    recommendedAttack,
     exploitedCount,
     totalWeaknesses: weaknesses.length,
     exploitPct: Math.round((exploitedCount / weaknesses.length) * 100),

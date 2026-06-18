@@ -10,6 +10,7 @@ import { IntelligenceReportCard } from "./intelligence-report";
 import { CostDashboardCard } from "./cost-dashboard";
 import { RecoveryTimelineCard } from "./recovery-timeline";
 import { FutureMessages } from "./future-messages";
+import { DataCleanup } from "./data-cleanup";
 
 export function IntelligenceClient({ data }: { data: IntelligenceData }) {
   return (
@@ -20,7 +21,7 @@ export function IntelligenceClient({ data }: { data: IntelligenceData }) {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <RiskForecast forecast={data.forecast} />
-        <RecoveryXpCard xp={data.recoveryXp} />
+        <RecoveryXpCard xp={data.recoveryXp} lastJointAt={data.lastJointAt} />
       </div>
 
       <DragonIntelPanel intel={data.dragonIntel} />
@@ -42,6 +43,8 @@ export function IntelligenceClient({ data }: { data: IntelligenceData }) {
           <p className="text-3xl font-black text-neon-green">{data.dragonAttackStats.survivalRate}%</p>
         </div>
       )}
+
+      <DataCleanup />
     </div>
   );
 }

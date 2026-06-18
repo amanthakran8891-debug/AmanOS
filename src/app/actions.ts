@@ -289,6 +289,45 @@ export async function logDragonAttack(input: {
   revalidatePath("/");
 }
 
+// ── Data hygiene — duplicate relapse cleanup (safe, preview-first) ────────────
+interface DuplicateRelapseGroup {
+  keep: { id: string; at: string; trigger: string | null };
+  duplicates: { id: string; at: string; trigger: string | null }[];
+}
+
+/** Detect relapse logs clustered within a short window (likely test/dupe entries).
+ *  Groups by proximity to the FIRST event in a cluster; the earliest is kept,
+ *  the rest are flagged as duplicates. Only relapse events are ever considered —
+ *  cravings and victories are never touched. Returns a preview; deletes nothing. */
+export async function findDuplicateRelapses(windowMinutes = 8): Promise<DuplicateRelapseGroup[]> {
+  const events = await prisma.jointEvent.findMany({ where: { type: "relapse" }, orderBy: { at: "asc" } });
+  const windowMs = Math.max(1, windowMinutes) * 60000;
+  const groups: typeof events[] = [];
+  let cluster: typeof events = [];
+  for (const e of events) {
+    if (cluster.length === 0) { cluster = [e]; continue; }
+    if (e.at.getTime() - cluster[0].at.getTime() <= windowMs) cluster.push(e);
+    else { if (cluster.length > 1) groups.push(cluster); cluster = [e]; }
+  }
+  if (cluster.length > 1) groups.push(cluster);
+
+  return groups.map((g) => ({
+    keep: { id: g[0].id, at: g[0].at.toISOString(), trigger: g[0].trigger },
+    duplicates: g.slice(1).map((d) => ({ id: d.id, at: d.at.toISOString(), trigger: d.trigger })),
+  }));
+}
+
+/** Delete specific duplicate relapse logs by id. Hard-guarded to type=relapse so
+ *  cravings/victories can never be removed by this path. */
+export async function deleteRelapseDuplicates(ids: string[]): Promise<number> {
+  const clean = (ids || []).filter((s) => typeof s === "string" && s.length > 0);
+  if (clean.length === 0) return 0;
+  const res = await prisma.jointEvent.deleteMany({ where: { id: { in: clean }, type: "relapse" } });
+  revalidatePath("/intelligence");
+  revalidatePath("/");
+  return res.count;
+}
+
 // ── Craving Analytics Engine ─────────────────────────────────────────────────
 /** Log a craving with full context + outcome (won = resisted, lost = used). */
 export async function logCraving(input: {

@@ -9,6 +9,13 @@ export interface FutureMessage {
   unlocked: boolean;
   isLatest: boolean; // most recently unlocked
   message: string;
+  preview: string;   // teaser shown while locked (first words, blurred in UI)
+}
+
+/** First ~12 words of a message, as a locked teaser. */
+function teaser(msg: string, words = 12): string {
+  const w = msg.split(/\s+/);
+  return w.length <= words ? msg : w.slice(0, words).join(" ") + "…";
 }
 
 const MESSAGES: { day: number; title: string; message: string }[] = [
@@ -41,6 +48,7 @@ export function futureMessages(streakDays: number): FutureMessage[] {
     day: m.day,
     title: m.title,
     message: m.message,
+    preview: teaser(m.message),
     unlocked: streakDays >= m.day,
     isLatest: m.day === latest,
   }));

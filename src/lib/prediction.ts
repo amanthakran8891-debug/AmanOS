@@ -29,6 +29,11 @@ export interface RiskConfidence {
   note: string;
 }
 
+export interface NextBestMove {
+  action: string;
+  reason: string;
+}
+
 export interface RiskForecast {
   band: RiskBand;
   emoji: string;        // 🟢 🟡 🔴
@@ -38,6 +43,7 @@ export interface RiskForecast {
   reasons: string[];    // why risk is elevated
   protective: string[]; // what is lowering risk today
   suggestions: string[];
+  nextBestMove: NextBestMove | null; // the single highest-leverage action right now
   confidence: RiskConfidence;
   factors: RiskFactor[];
 }
@@ -183,6 +189,15 @@ export function predictRisk(input: PredictionInput): RiskForecast {
   if (input.streakDays >= 7) protective.push(`${input.streakDays}d streak — momentum on your side`);
   if (t.sleepHours >= 7) protective.push("Well rested");
 
+  // Next best move — the single highest-leverage habit still missing today,
+  // in impact order: gym → study → protein → spiritual.
+  let nextBestMove: NextBestMove | null;
+  if (!t.gymDone) nextBestMove = { action: "Complete gym now", reason: "it reduces today's risk most — 2× dragon damage" };
+  else if (!nclexHit) nextBestMove = { action: "Do one NCLEX study block", reason: "an occupied mind resists cravings" };
+  else if (!proteinHit) nextBestMove = { action: "Hit your protein target", reason: "physical depletion fuels cravings" };
+  else if (!t.spiritualDone) nextBestMove = { action: "Read one Gita verse", reason: "it lowers craving strength" };
+  else nextBestMove = { action: "Protect the evening", reason: "high-impact habits already done — hold the line tonight" };
+
   // 3-band display mapping.
   const band: RiskBand = result.score >= 60 ? "High" : result.score >= 30 ? "Medium" : "Low";
   const emoji = band === "High" ? "🔴" : band === "Medium" ? "🟡" : "🟢";
@@ -197,6 +212,7 @@ export function predictRisk(input: PredictionInput): RiskForecast {
     reasons: result.reasons,
     protective,
     suggestions: result.suggestions,
+    nextBestMove,
     confidence,
     factors,
   };

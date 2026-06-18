@@ -1,17 +1,48 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import type { RecoveryXp } from "@/lib/recovery-xp";
+import type { RecoveryXp, XpLine } from "@/lib/recovery-xp";
+import { RECOVERY_XP } from "@/lib/recovery-xp";
 
-export function RecoveryXpCard({ xp }: { xp: RecoveryXp }) {
+/** Clean hours accrued so far today, derived live from the anchor. */
+function liveCleanHoursToday(lastJointAt: string | null, now = Date.now()): number {
+  if (!lastJointAt) return 0;
+  const anchor = new Date(lastJointAt).getTime();
+  if (!Number.isFinite(anchor)) return 0;
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  const from = Math.max(start.getTime(), anchor);
+  return Math.max(0, Math.min(24, Math.floor((now - from) / 3600000)));
+}
+
+export function RecoveryXpCard({ xp, lastJointAt }: { xp: RecoveryXp; lastJointAt: string | null }) {
   const l = xp.level;
+  const [cleanHrs, setCleanHrs] = useState(() => liveCleanHoursToday(lastJointAt));
+
+  useEffect(() => {
+    const tick = () => setCleanHrs(liveCleanHoursToday(lastJointAt));
+    tick();
+    const id = setInterval(tick, 30000); // clean hours change hourly; refresh often enough to feel live
+    return () => clearInterval(id);
+  }, [lastJointAt]);
+
+  // Replace the server-computed clean-hour line with the live value.
+  const serverCleanHourXp = xp.today.lines.find((x) => x.key === "cleanHour")?.xp ?? 0;
+  const liveCleanHourXp = cleanHrs * RECOVERY_XP.cleanHour;
+  const todayTotal = xp.today.total - serverCleanHourXp + liveCleanHourXp;
+
+  const lines: XpLine[] = [
+    ...(cleanHrs > 0 ? [{ key: "cleanHour", label: `Clean hours ×${cleanHrs}`, xp: liveCleanHourXp }] : []),
+    ...xp.today.lines.filter((x) => x.key !== "cleanHour"),
+  ];
+
   return (
     <div className="card">
       <div className="flex items-start justify-between">
         <div>
           <p className="label text-neon-violet">Recovery XP</p>
           <p className="mt-1 text-3xl font-black tabular-nums text-white">
-            +{xp.today.total}<span className="ml-1 text-sm font-semibold text-slate-400">today</span>
+            +{todayTotal}<span className="ml-1 text-sm font-semibold text-slate-400">today</span>
           </p>
           <p className="text-xs text-slate-400">Lifetime <span className="font-bold tabular-nums text-neon-violet">{xp.lifetime.total.toLocaleString()}</span> XP</p>
         </div>
@@ -30,9 +61,9 @@ export function RecoveryXpCard({ xp }: { xp: RecoveryXp }) {
         {l.nextRankName ? `${l.xpToNext.toLocaleString()} XP → Lvl ${l.nextRankLevel} ${l.nextRankName}` : "Max rank reached"}
       </p>
 
-      {xp.today.lines.length > 0 && (
+      {lines.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {xp.today.lines.map((line) => (
+          {lines.map((line) => (
             <span key={line.key} className="chip text-[11px] text-slate-300">{line.label} <span className="font-bold text-neon-violet">+{line.xp}</span></span>
           ))}
         </div>
