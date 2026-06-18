@@ -256,6 +256,39 @@ export async function addCraving(craving: string, trigger: string, intensity: nu
   revalidatePath("/");
 }
 
+// ── Dragon Attack Mode — emergency craving intervention ───────────────────────
+/** Record the outcome of a Dragon Attack Mode session. A survived session also
+ *  logs a resisted craving so the prediction engine and analytics learn from it;
+ *  a loss logs it as a relapse signal. Powers Recovery XP mission rewards. */
+export async function logDragonAttack(input: {
+  survived: boolean; missionsCompleted: number; durationSec: number; intensity?: number; trigger?: string; note?: string;
+}) {
+  const intensity = Math.min(10, Math.max(0, Math.round(input.intensity ?? 7)));
+  const missions = Math.min(5, Math.max(0, Math.round(input.missionsCompleted)));
+  await prisma.dragonAttack.create({
+    data: {
+      survived: !!input.survived,
+      durationSec: Math.max(0, Math.round(input.durationSec)),
+      missionsCompleted: missions,
+      intensity,
+      trigger: input.trigger || null,
+      note: input.note || null,
+    },
+  }).catch(() => {});
+  // Feed the analytics + prediction engines with the craving outcome (won/lost).
+  // Note: a lost session logs a craving outcome only — it does NOT reset the
+  // clean clock. Use "Log relapse" for an actual relapse.
+  await prisma.craving.create({
+    data: { intensity: Math.max(1, intensity), trigger: input.trigger || null, outcome: input.survived ? "won" : "lost", note: "Dragon Attack Mode" },
+  }).catch(() => {});
+  await prisma.jointEvent.create({
+    data: { type: "craving", craving: null, trigger: input.trigger || null, intensity },
+  }).catch(() => {});
+  revalidatePath("/intelligence");
+  revalidatePath("/cravings");
+  revalidatePath("/");
+}
+
 // ── Craving Analytics Engine ─────────────────────────────────────────────────
 /** Log a craving with full context + outcome (won = resisted, lost = used). */
 export async function logCraving(input: {

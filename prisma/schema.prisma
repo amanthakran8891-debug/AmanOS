@@ -226,6 +226,22 @@ model Achievement {
   unlockedAt DateTime @default(now())
 }
 
+/// One Dragon Attack Mode session — the emergency craving-intervention tool.
+/// Powers Recovery XP (mission rewards), intervention stats and the timeline.
+model DragonAttack {
+  id                String   @id @default(cuid())
+  at                DateTime @default(now())
+  survived          Boolean  @default(true) // "Did you defeat the dragon?" yes/no
+  durationSec       Int      @default(0)    // how long the survival timer ran
+  missionsCompleted Int      @default(0)    // checklist items completed (0..5)
+  intensity         Int      @default(0)    // craving intensity that triggered it (0..10)
+  trigger           String?
+  note              String?
+
+  @@index([at])
+  @@index([survived])
+}
+
 /// Singleton Dragon campaign record. lifetimeDamage is a MATERIALIZED, monotonic
 /// total recomputed from logged DayLogs on every load (real actions only — never
 /// incremented by taps). It ratchets up so dragonsDefeated can never be un-earned

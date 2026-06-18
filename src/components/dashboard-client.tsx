@@ -17,6 +17,10 @@ import { GitaCard } from "./gita-card";
 import { WisdomCard } from "./wisdom-card";
 import { CleanStreakHero } from "./clean-streak-hero";
 import { RecoveryRecords } from "./recovery-records";
+import { DailyCoach } from "./daily-coach";
+import { RiskForecast } from "./risk-forecast";
+import { DragonAttackMode } from "./dragon-attack";
+import { RecoveryXpCard } from "./recovery-xp";
 import { InstallCard } from "./install-card";
 import { MissionCard } from "./mission-card";
 import { QuickActions } from "./quick-actions";
@@ -102,6 +106,23 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
       {/* Clean Streak Hero */}
       <section className="mt-4">
         <CleanStreakHero lastJointAt={settings.lastJointAt} streakDays={streakDays} longestStreak={settings.longestStreakDays} bestCleanRunSec={settings.bestCleanRunSec} />
+      </section>
+
+      {/* Recovery Intelligence — coach, risk, emergency tool, XP (recovery-first) */}
+      <section className="mt-4 space-y-3">
+        <DailyCoach briefing={data.coach} />
+        <DragonAttackMode />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <RiskForecast forecast={data.forecast} compact />
+          <RecoveryXpCard xp={data.recoveryXp} />
+        </div>
+        <Link href="/intelligence" className="card flex items-center justify-between transition hover:border-neon-cyan/50" style={{ background: "linear-gradient(160deg, rgba(34,211,238,0.10), rgba(13,19,34,0.55))" }}>
+          <div>
+            <p className="text-sm font-bold text-white">🧠 Recovery Intelligence</p>
+            <p className="text-[11px] text-slate-400">Risk forecast, dragon weaknesses, cost, timeline, reports →</p>
+          </div>
+          <span className="text-2xl">→</span>
+        </Link>
       </section>
 
       {/* Hero: Life Score + Dragon */}

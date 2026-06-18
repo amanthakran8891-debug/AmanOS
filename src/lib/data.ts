@@ -8,7 +8,15 @@ import { recoveryModel, recoveryScoresAt, SYMPTOM_KEYS, TIMELINE as RECOVERY_TIM
 import { dailyScore, driftFlags, momentum, weeklyReport, type DayFacts, type DiscTargets } from "@/lib/discipline";
 import { computeCombat } from "@/lib/combat";
 import { dailyDamage, lifetimeDamageFromDays, dragonCampaign } from "@/lib/damage";
-import { streakDaysFrom } from "@/lib/clean-time";
+import { streakDaysFrom, cleanSecondsFrom } from "@/lib/clean-time";
+import { predictRisk } from "@/lib/prediction";
+import { computeRecoveryXp } from "@/lib/recovery-xp";
+import { computeDragonIntel } from "@/lib/dragon-intel";
+import { computeCost } from "@/lib/cost";
+import { ruleBasedBriefing, weeklyIntelligenceReport } from "@/lib/coach";
+import { buildTimeline } from "@/lib/recovery-timeline";
+import { futureMessages, nextFutureMessage } from "@/lib/future-messages";
+import { cravingAnalytics, type CravingRow } from "@/lib/cravings";
 import { computeCeo } from "@/lib/ceo";
 import { computeRpg } from "@/lib/rpg";
 import { progressPct as gitaProgressPct, LOADED_VERSES, TOTAL_VERSES, HAS_VERSES, getVerse } from "@/lib/gita-library";
@@ -80,6 +88,7 @@ export async function getDashboardData() {
 
   const dragon = dragonState(score.total, streakDays, { cravingIntensity: todaySymptom?.cravings ?? 0, disciplineScore: disciplineToday });
   const combat = await buildCombatState(settings);
+  const intel = await loadRecoveryIntel(settings, today);
 
   // Muscle recovery — days since each body part was last trained.
   const partRecency: Record<string, number | null> = {};
@@ -137,6 +146,13 @@ export async function getDashboardData() {
     dragon,
     streakDays,
     disciplineToday,
+    // Recovery Intelligence (Phase 2) — surfaced on the dashboard, recovery-first.
+    forecast: intel.forecast,
+    coach: intel.coach,
+    recoveryXp: intel.recoveryXp,
+    dragonAttackStats: intel.dragonAttackStats,
+    futureMessages: intel.futureMessages,
+    nextFutureMessage: intel.nextFutureMessage,
     combat: {
       level: combat.level,
       rank: combat.rank,
@@ -690,3 +706,173 @@ export async function getSpiritualData() {
 }
 
 export type SpiritualData = Awaited<ReturnType<typeof getSpiritualData>>;
+
+// ── Recovery Intelligence System (Phase 2) ────────────────────────────────────
+// One assembler powers both the dashboard surface and the /intelligence page, so
+// every system reads the same recovery source of truth.
+function localDayKey(d: Date | string): string {
+  const x = new Date(d);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+}
+
+const CANNABIS_CATEGORIES = new Set(["weed", "cannabis", "joint", "joints", "marijuana"]);
+
+async function loadRecoveryIntel(settings: SettingsRow, todayRow: DayLogRow) {
+  const now = new Date();
+  const date = todayKey();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adb = prisma as any;
+
+  const [allDays, jointEvents, cravingRows, dragonAttacks, txns, expenses] = await Promise.all([
+    prisma.dayLog.findMany({ orderBy: { date: "asc" } }),
+    prisma.jointEvent.findMany({ orderBy: { at: "desc" } }),
+    prisma.craving.findMany({ orderBy: { at: "desc" } }),
+    adb.dragonAttack.findMany({ orderBy: { at: "desc" } }).catch(() => [] as { at: Date; survived: boolean }[]),
+    prisma.transaction.findMany({ where: { kind: "expense" } }).catch(() => []),
+    prisma.expense.findMany().catch(() => []),
+  ]);
+
+  const streakDays = streakDaysFrom(settings.lastJointAt);
+  const cleanSec = cleanSecondsFrom(settings.lastJointAt);
+  const targets = { proteinTarget: settings.proteinTarget, sleepTarget: settings.sleepTarget, nclexHoursTarget: settings.nclexHoursTarget };
+
+  const todayFacts = {
+    jointClean: todayRow.jointClean, gymDone: todayRow.gymDone, sleepHours: todayRow.sleepHours,
+    proteinG: todayRow.proteinG, nclexHours: todayRow.nclexHours, bharatfareDone: todayRow.bharatfareDone, spiritualDone: todayRow.spiritualDone,
+  };
+
+  // ── Event streams ──
+  const relapseEvents = [
+    ...jointEvents.filter((j) => j.type === "relapse").map((j) => ({ at: j.at })),
+    ...cravingRows.filter((c) => c.outcome === "lost").map((c) => ({ at: c.at })),
+  ];
+  const cravingEventsAt = [
+    ...cravingRows.map((c) => ({ at: c.at })),
+    ...jointEvents.filter((j) => j.type === "craving").map((j) => ({ at: j.at })),
+  ];
+  const cravingRowsForAnalytics: CravingRow[] = [
+    ...cravingRows.map((c) => ({ at: c.at, intensity: c.intensity, trigger: c.trigger, location: c.location, emotion: c.emotion, outcome: c.outcome })),
+    ...jointEvents.filter((j) => j.type === "craving").map((j) => ({ at: j.at, intensity: j.intensity, trigger: j.trigger, location: null, emotion: null, outcome: "won" })),
+  ];
+
+  // ── #1 Prediction ──
+  const forecast = predictRisk({
+    now, streakDays, today: todayFacts, targets,
+    relapses: relapseEvents, cravings: cravingEventsAt,
+    recentDays: allDays.map((d) => ({ date: d.date, jointClean: d.jointClean })),
+  });
+
+  const analytics = cravingAnalytics(cravingRowsForAnalytics, now);
+  const topTriggers = analytics.byTrigger.filter((t) => t.name !== "unknown").slice(0, 3).map((t) => ({ name: t.name, count: t.count }));
+  const topEmotions = analytics.byEmotion.filter((t) => t.name !== "unknown").slice(0, 3).map((t) => ({ name: t.name, count: t.count }));
+
+  // ── #3 Recovery XP ──
+  const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
+  const anchorMs = settings.lastJointAt ? new Date(settings.lastJointAt).getTime() : null;
+  const cleanStartMs = anchorMs ? Math.max(startOfDay.getTime(), anchorMs) : startOfDay.getTime();
+  const cleanHoursToday = todayFacts.jointClean && anchorMs ? Math.min(24, Math.max(0, Math.floor((now.getTime() - cleanStartMs) / 3600000))) : 0;
+  const todayCravingsWon = cravingRows.filter((c) => c.outcome === "won" && localDayKey(c.at) === date).length
+    + jointEvents.filter((j) => j.type === "craving" && localDayKey(j.at) === date).length;
+  const todayMissions = dragonAttacks.filter((a: { at: Date; survived: boolean }) => a.survived && localDayKey(a.at) === date).length;
+  const cleanDaysLifetime = allDays.filter((d) => d.jointClean).length;
+  const recoveryXp = computeRecoveryXp({
+    streakDays,
+    today: { jointClean: todayFacts.jointClean, gymDone: todayFacts.gymDone, cleanHours: cleanHoursToday, cravingsWon: todayCravingsWon, missions: todayMissions, cleanWeekCompletedToday: streakDays > 0 && streakDays % 7 === 0 },
+    lifetime: {
+      cleanDays: cleanDaysLifetime,
+      cleanHours: cleanDaysLifetime * 24 + Math.floor(cleanSec / 3600) % 24,
+      cravingsWon: cravingRows.filter((c) => c.outcome === "won").length + jointEvents.filter((j) => j.type === "craving").length,
+      missions: dragonAttacks.filter((a: { survived: boolean }) => a.survived).length,
+      gymCleanComboDays: allDays.filter((d) => d.jointClean && d.gymDone).length,
+    },
+  });
+
+  // ── #5 Dragon Intelligence ──
+  const dragonIntel = computeDragonIntel({
+    today: { jointClean: todayFacts.jointClean, gymDone: todayFacts.gymDone, proteinG: todayFacts.proteinG, nclexHours: todayFacts.nclexHours, spiritualDone: todayFacts.spiritualDone },
+    targets: { proteinTarget: settings.proteinTarget, nclexHoursTarget: settings.nclexHoursTarget },
+    topTriggers, topEmotions,
+    dangerWindowLabel: forecast.window?.label ?? (analytics.mostDangerousHour !== "—" ? analytics.mostDangerousHour : null),
+    riskiestDay: analytics.mostDangerousDay !== "—" ? analytics.mostDangerousDay : null,
+  });
+
+  // ── #7 Cost ──
+  const spend = [
+    ...txns.filter((t) => CANNABIS_CATEGORIES.has((t.category || "").toLowerCase())).map((t) => ({ date: t.date, amount: t.amount })),
+    ...expenses.filter((e) => CANNABIS_CATEGORIES.has((e.category || "").toLowerCase())).map((e) => ({ date: e.date, amount: e.amount })),
+  ];
+  const last30Keys = new Set(lastNDays(30, date));
+  const cost = computeCost({
+    currency: "£", spend, nowKey: date, thirtyAgoKey: addDaysKey(date, -30),
+    useDaysLifetime: allDays.filter((d) => !d.jointClean).length,
+    useDaysLast30: allDays.filter((d) => !d.jointClean && last30Keys.has(d.date)).length,
+    jointsPerDay: settings.recJointsPerDay, pricePerJoint: 5,
+    nclexHoursTarget: settings.nclexHoursTarget, gymDaysPerWeek: settings.gymDaysTarget,
+  });
+
+  // ── #9 Daily Coach ──
+  const coach = ruleBasedBriefing({
+    name: "Aman", streakDays, riskBand: forecast.band, riskScore: forecast.score,
+    topRiskReason: forecast.reasons[0] ?? null, dangerWindowLabel: forecast.window?.label ?? null,
+    protectiveToday: forecast.protective, gymDoneToday: todayFacts.gymDone, cleanWeeksMilestoneSoon: null,
+  });
+
+  // ── #4 Weekly Intelligence Report (last 42 days) ──
+  const reportKeys = lastNDays(42, date);
+  const byDate = new Map(allDays.map((d) => [d.date, d]));
+  const cravingsByDay: Record<string, number> = {};
+  for (const k of reportKeys) cravingsByDay[k] = 0;
+  for (const c of cravingRowsForAnalytics) { const k = localDayKey(c.at); if (k in cravingsByDay) cravingsByDay[k]++; }
+  const flagByDay = (pred: (d: DayLogRow) => boolean) => {
+    const o: Record<string, boolean> = {};
+    for (const k of reportKeys) { const d = byDate.get(k); o[k] = d ? pred(d) : false; }
+    return o;
+  };
+  const report = weeklyIntelligenceReport({
+    cravingsByDay,
+    flags: [
+      { key: "gym", label: "Gym days", helpful: true, byDay: flagByDay((d) => d.gymDone) },
+      { key: "study", label: "Study days", helpful: true, byDay: flagByDay((d) => d.nclexHours >= Math.max(0.1, settings.nclexHoursTarget)) },
+      { key: "spiritual", label: "Spiritual days", helpful: true, byDay: flagByDay((d) => d.spiritualDone) },
+      { key: "poor-sleep", label: "Poor-sleep nights", helpful: false, byDay: flagByDay((d) => d.sleepHours > 0 && d.sleepHours < 6) },
+    ],
+  });
+
+  // ── #8 Timeline ──
+  const timeline = buildTimeline({
+    now,
+    lastJointAt: settings.lastJointAt ? new Date(settings.lastJointAt).toISOString() : null,
+    streakDays,
+    relapses: relapseEvents.map((e) => ({ at: new Date(e.at).toISOString() })),
+    cravings: cravingRowsForAnalytics.map((c) => ({ at: new Date(c.at).toISOString(), outcome: c.outcome, intensity: c.intensity })),
+  });
+
+  const daTotal = dragonAttacks.length;
+  const daSurvived = dragonAttacks.filter((a: { survived: boolean }) => a.survived).length;
+
+  return {
+    forecast,
+    recoveryXp,
+    dragonIntel,
+    cost,
+    coach,
+    report,
+    timeline,
+    futureMessages: futureMessages(streakDays),
+    nextFutureMessage: nextFutureMessage(streakDays),
+    dragonAttackStats: { total: daTotal, survived: daSurvived, survivalRate: daTotal ? Math.round((daSurvived / daTotal) * 100) : 0 },
+    analyticsLite: { victoryRate: analytics.victoryRate, mostDangerousHour: analytics.mostDangerousHour, mostDangerousDay: analytics.mostDangerousDay, total: analytics.total, last7: analytics.last7 },
+    streakDays,
+  };
+}
+
+export async function getIntelligenceData() {
+  const date = todayKey();
+  const settings = await ensureSettings();
+  const today = await ensureDay(date);
+  const intel = await loadRecoveryIntel(settings, today);
+  return { date, lastJointAt: settings.lastJointAt ? settings.lastJointAt.toISOString() : null, ...intel };
+}
+
+export type IntelligenceData = Awaited<ReturnType<typeof getIntelligenceData>>;
+export type RecoveryIntel = Awaited<ReturnType<typeof loadRecoveryIntel>>;

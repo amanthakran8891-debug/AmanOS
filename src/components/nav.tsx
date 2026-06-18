@@ -16,6 +16,7 @@ const TABS: Tab[] = [
   { href: "/today", label: "Today", icon: "✓" },
   { href: "/discipline", label: "Discipline", icon: "⚖" },
   { href: "/recovery", label: "Recovery", icon: "🛡" },
+  { href: "/intelligence", label: "Intel", icon: "🧠" },
   { href: "/nclex", label: "NCLEX", icon: "📚" },
   { href: "/gym", label: "Gym", icon: "🏋" },
   { href: "/settings", label: "Settings", icon: "⚙" },
