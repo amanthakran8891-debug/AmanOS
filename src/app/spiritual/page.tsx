@@ -38,6 +38,16 @@ export default async function SpiritualPage() {
         </div>
       </section>
 
+      {/* Krishna Explains It To Aman — mentor mode */}
+      <Link href="/spiritual/mentor" className="mt-4 block rounded-2xl border border-neon-violet/40 bg-gradient-to-br from-[#221a3a] to-surface p-5 transition hover:border-neon-violet/70">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wider text-neon-violet/90">🦚 Krishna Explains It To Aman</p>
+          <span className="text-[11px] text-neon-violet">mentor →</span>
+        </div>
+        <p className="mt-1 text-lg font-bold text-white">Today&rsquo;s verse, explained for your real life</p>
+        <p className="mt-1 text-sm text-slate-400">Story mode · Aman mode · Krishna&rsquo;s advice · a reflection to journal. Recovery-aware on hard days.</p>
+      </Link>
+
       {/* Continue reading — Gita */}
       <Link href={`/spiritual/gita/${d.gita.chapter}`} className="mt-4 block rounded-2xl border border-line bg-gradient-to-br from-[#1a1530] to-surface p-5 transition hover:border-neon-violet/50">
         <div className="flex items-center justify-between">

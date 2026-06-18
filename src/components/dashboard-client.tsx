@@ -227,6 +227,27 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
             <p className="text-[11px] text-slate-400">Danger windows, triggers, victory rate →</p>
           </div>
         </Link>
+        <Link href="/finance" className="card flex items-center gap-3 transition hover:border-emerald-400/50" style={{ background: "linear-gradient(160deg, rgba(52,211,153,0.10), rgba(13,19,34,0.55))" }}>
+          <span className="text-3xl">🏦</span>
+          <div>
+            <p className="text-sm font-bold text-white">Finance Command</p>
+            <p className="text-[11px] text-slate-400">Net worth, cashflow, freedom fund →</p>
+          </div>
+        </Link>
+        <Link href="/correlations" className="card flex items-center gap-3 transition hover:border-sky-400/50" style={{ background: "linear-gradient(160deg, rgba(56,189,248,0.10), rgba(13,19,34,0.55))" }}>
+          <span className="text-3xl">🧠</span>
+          <div>
+            <p className="text-sm font-bold text-white">Life Correlations</p>
+            <p className="text-[11px] text-slate-400">Why your life improves or slips →</p>
+          </div>
+        </Link>
+        <Link href="/nicotine" className="card flex items-center gap-3 transition hover:border-orange-400/50" style={{ background: "linear-gradient(160deg, rgba(251,146,60,0.10), rgba(13,19,34,0.55))" }}>
+          <span className="text-3xl">🚬</span>
+          <div>
+            <p className="text-sm font-bold text-white">Nicotine Command</p>
+            <p className="text-[11px] text-slate-400">The second dragon — cravings, cost, freedom →</p>
+          </div>
+        </Link>
       </section>
 
       {/* Today's Mission */}

@@ -141,6 +141,108 @@ export async function addExpense(category: string, amount: number, note: string)
   revalidatePath("/");
 }
 
+// ── Finance Command Center ───────────────────────────────────────────────────
+/** Log an income or expense transaction. */
+export async function addTransaction(input: {
+  kind: "income" | "expense"; category: string; amount: number; date?: string; recurring?: boolean; note?: string;
+}) {
+  await prisma.transaction.create({
+    data: {
+      date: input.date || todayKey(),
+      kind: input.kind === "income" ? "income" : "expense",
+      category: input.category || "other",
+      amount: Math.max(0, Math.round((input.amount || 0) * 100) / 100),
+      recurring: !!input.recurring,
+      note: input.note || null,
+    },
+  });
+  revalidatePath("/finance");
+  revalidatePath("/");
+}
+
+export async function removeTransaction(id: string) {
+  await prisma.transaction.delete({ where: { id } }).catch(() => {});
+  revalidatePath("/finance");
+}
+
+export async function updateTransaction(id: string, data: { category: string; amount: number; note: string }) {
+  await prisma.transaction.update({
+    where: { id },
+    data: { category: data.category, amount: Math.max(0, data.amount), note: data.note || null },
+  }).catch(() => {});
+  revalidatePath("/finance");
+}
+
+/** Create or update a balance account (net-worth / debt-payoff tracking). */
+export async function upsertAccount(input: { id?: string; name: string; kind: string; balance: number; apr?: number }) {
+  const data = {
+    name: input.name || "Account",
+    kind: input.kind || "savings",
+    balance: Math.round((input.balance || 0) * 100) / 100,
+    apr: Math.max(0, input.apr || 0),
+  };
+  if (input.id) await prisma.financeAccount.update({ where: { id: input.id }, data }).catch(() => {});
+  else await prisma.financeAccount.create({ data });
+  revalidatePath("/finance");
+  revalidatePath("/");
+}
+
+export async function removeAccount(id: string) {
+  await prisma.financeAccount.delete({ where: { id } }).catch(() => {});
+  revalidatePath("/finance");
+}
+
+// ── Nicotine Command Center ──────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ndb = prisma as any;
+
+/** Log a nicotine event: a use (cigarette/vape/pouch/cigar), a relapse, or a
+ *  craving (won = resisted, lost = used). */
+export async function logNicotineEvent(input: {
+  type: string; quantity?: number; nicotineMg?: number; cost?: number;
+  trigger?: string; location?: string; emotion?: string; outcome?: "won" | "lost"; shift?: string; note?: string;
+}) {
+  await ndb.nicotineEvent.create({
+    data: {
+      type: input.type || "cigarette",
+      quantity: Math.max(1, Math.round(input.quantity || 1)),
+      nicotineMg: Math.max(0, input.nicotineMg || 0),
+      cost: Math.max(0, Math.round((input.cost || 0) * 100) / 100),
+      trigger: input.trigger || null,
+      location: input.location || null,
+      emotion: input.emotion || null,
+      outcome: input.type === "craving" ? (input.outcome === "lost" ? "lost" : "won") : null,
+      shift: input.shift || null,
+      note: input.note || null,
+    },
+  }).catch(() => {});
+  revalidatePath("/nicotine");
+  revalidatePath("/correlations");
+  revalidatePath("/");
+}
+
+export async function removeNicotineEvent(id: string) {
+  await ndb.nicotineEvent.delete({ where: { id } }).catch(() => {});
+  revalidatePath("/nicotine");
+}
+
+export async function setNicotineGoal(input: {
+  quitDate?: string | null; dailyLimit?: number; reductionPlan?: string;
+  pricePerUnit?: number; mgPerUnit?: number; baselinePerDay?: number;
+}) {
+  const data = {
+    quitDate: input.quitDate ? new Date(input.quitDate) : null,
+    dailyLimit: Math.max(0, Math.round(input.dailyLimit ?? 0)),
+    reductionPlan: input.reductionPlan || null,
+    pricePerUnit: Math.max(0, input.pricePerUnit ?? 0.6),
+    mgPerUnit: Math.max(0, input.mgPerUnit ?? 12),
+    baselinePerDay: Math.max(0, Math.round(input.baselinePerDay ?? 10)),
+  };
+  await ndb.nicotineGoal.upsert({ where: { id: 1 }, create: { id: 1, ...data }, update: data }).catch(() => {});
+  revalidatePath("/nicotine");
+  revalidatePath("/");
+}
+
 export async function addCraving(craving: string, trigger: string, intensity: number) {
   await prisma.jointEvent.create({ data: { type: "craving", craving, trigger, intensity } });
   revalidatePath("/");

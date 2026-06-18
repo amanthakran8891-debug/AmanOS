@@ -159,6 +159,37 @@ model Expense {
   @@index([date])
 }
 
+/// Finance Command Center — unified income/expense ledger. (Legacy Expense rows
+/// are still read as expenses; new entries are Transactions.)
+model Transaction {
+  id        String   @id @default(cuid())
+  date      String // "YYYY-MM-DD"
+  kind      String // "income" | "expense"
+  category  String // salary | bharatfare | side-hustle | rent | bills | food | weed | cigarettes | ...
+  amount    Float
+  recurring Boolean  @default(false) // fixed/monthly vs one-off
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([date])
+  @@index([kind])
+  @@index([category])
+}
+
+/// A balance for net-worth / debt-payoff / savings tracking. One row per account;
+/// update `balance` over time (kept simple — current balances, not a full ledger).
+model FinanceAccount {
+  id        String   @id @default(cuid())
+  name      String
+  kind      String // "savings" | "investment" | "debt" | "cash"
+  balance   Float    @default(0)
+  apr       Float    @default(0) // for debt/investment context (optional)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([kind])
+}
+
 model JointEvent {
   id        String   @id @default(cuid())
   at        DateTime @default(now())
@@ -253,4 +284,40 @@ model SpiritualReadingLog {
 
   @@unique([date, kind])
   @@index([date])
+}
+
+// ── Nicotine Command Center (the second dragon) ───────────────────────────────
+
+/// Every nicotine event — cigarette/vape/pouch/cigar use, a relapse, or a craving
+/// (won or lost). Powers the Nicotine Recovery Engine, dragon, forecast and the
+/// correlation engine (shared with cannabis recovery).
+model NicotineEvent {
+  id         String   @id @default(cuid())
+  at         DateTime @default(now())
+  type       String // cigarette | vape | pouch | cigar | relapse | craving
+  quantity   Int      @default(1)
+  nicotineMg Float    @default(0)
+  cost       Float    @default(0) // £ spent on this event
+  trigger    String?
+  location   String?
+  emotion    String?
+  outcome    String? // for craving events: "won" (resisted) | "lost" (used)
+  shift      String? // nursing-shift context: "day" | "night" | "off"
+  note       String?
+
+  @@index([at])
+  @@index([type])
+}
+
+/// Single-row nicotine goal + economics baseline for avoided/saved calculations.
+model NicotineGoal {
+  id             Int       @id @default(1)
+  quitDate       DateTime? // target quit date
+  dailyLimit     Int       @default(0) // reduction target (0 = quit / none set)
+  reductionPlan  String?
+  pricePerUnit   Float     @default(0.6) // £ per cigarette/unit (money saved)
+  mgPerUnit      Float     @default(12) // nicotine mg per unit (avoided calc)
+  baselinePerDay Int       @default(10) // pre-quit daily consumption
+  startedAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
