@@ -20,6 +20,22 @@ export const RECOVERY_XP = {
 
 export interface XpLine { key: string; label: string; xp: number }
 
+/** Progression unlocks — cosmetic at first, but progression should feel earned. */
+export const XP_UNLOCKS: { level: number; label: string; icon: string }[] = [
+  { level: 7, label: "Forecast Accuracy Badge", icon: "🎯" },
+  { level: 10, label: "Warrior Rank", icon: "⚔" },
+  { level: 15, label: "Advanced Recovery Analytics", icon: "📊" },
+  { level: 20, label: "Dragon Slayer Badge", icon: "🐉" },
+];
+
+export interface XpUnlock { level: number; label: string; icon: string; unlocked: boolean }
+export function unlocksFor(level: number): XpUnlock[] {
+  return XP_UNLOCKS.map((u) => ({ ...u, unlocked: level >= u.level }));
+}
+export function nextUnlock(level: number): { level: number; label: string; icon: string } | null {
+  return XP_UNLOCKS.find((u) => u.level > level) ?? null;
+}
+
 export interface RecoveryXpInput {
   streakDays: number;
   today: {

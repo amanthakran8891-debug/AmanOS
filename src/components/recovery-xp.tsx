@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import type { RecoveryXp, XpLine } from "@/lib/recovery-xp";
-import { RECOVERY_XP } from "@/lib/recovery-xp";
+import { RECOVERY_XP, unlocksFor } from "@/lib/recovery-xp";
 
 /** Clean hours accrued so far today, derived live from the anchor. */
 function liveCleanHoursToday(lastJointAt: string | null, now = Date.now()): number {
@@ -15,8 +15,9 @@ function liveCleanHoursToday(lastJointAt: string | null, now = Date.now()): numb
   return Math.max(0, Math.min(24, Math.floor((now - from) / 3600000)));
 }
 
-export function RecoveryXpCard({ xp, lastJointAt }: { xp: RecoveryXp; lastJointAt: string | null }) {
+export function RecoveryXpCard({ xp, lastJointAt, detailed = false }: { xp: RecoveryXp; lastJointAt: string | null; detailed?: boolean }) {
   const l = xp.level;
+  const unlocks = unlocksFor(l.level);
   const [cleanHrs, setCleanHrs] = useState(() => liveCleanHoursToday(lastJointAt));
 
   useEffect(() => {
@@ -66,6 +67,22 @@ export function RecoveryXpCard({ xp, lastJointAt }: { xp: RecoveryXp; lastJointA
           {lines.map((line) => (
             <span key={line.key} className="chip text-[11px] text-slate-300">{line.label} <span className="font-bold text-neon-violet">+{line.xp}</span></span>
           ))}
+          <span className="chip text-[11px] font-bold text-white">Total +{todayTotal}</span>
+        </div>
+      )}
+
+      {detailed && (
+        <div className="mt-4">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Unlocks</p>
+          <div className="mt-2 space-y-1.5">
+            {unlocks.map((u) => (
+              <div key={u.level} className={`flex items-center gap-3 rounded-xl border px-3 py-2 ${u.unlocked ? "border-neon-violet/40 bg-neon-violet/10" : "border-line bg-surface-2/40"}`}>
+                <span className="text-lg">{u.unlocked ? u.icon : "🔒"}</span>
+                <span className={`flex-1 text-sm font-semibold ${u.unlocked ? "text-white" : "text-slate-500"}`}>{u.label}</span>
+                <span className={`text-[11px] font-bold ${u.unlocked ? "text-neon-violet" : "text-slate-500"}`}>Lvl {u.level}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

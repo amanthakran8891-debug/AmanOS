@@ -9,12 +9,13 @@ import {
   type SymptomKey, type UseLevel, type RecoveryScores,
 } from "@/lib/recovery";
 import { logSymptoms, updateRecoveryProfile } from "@/app/actions";
-import { cleanDaysFloat } from "@/lib/clean-time";
+import { cleanDaysFloat, fmtDurHM } from "@/lib/clean-time";
 
 const confColor = { low: "#fb7185", medium: "#fbbf24", high: "#34f5c5" } as const;
 
 export function RecoveryClient({ data }: { data: RecoveryData }) {
   const { model, cleanDays, profile, today, longestStreak } = data;
+  void longestStreak;
   const [pending, start] = useTransition();
   const run = (fn: () => Promise<void>) => start(() => void fn());
 
@@ -44,7 +45,7 @@ export function RecoveryClient({ data }: { data: RecoveryData }) {
           <div>
             <p className="label">Freedom Score · live</p>
             <p className="text-5xl font-extrabold tabular-nums text-white glow-text">{freedom.toFixed(2)}<span className="text-2xl text-slate-400">%</span></p>
-            <p className="text-xs text-slate-400">{cleanDays} clean {cleanDays === 1 ? "day" : "days"} · best ever {longestStreak}d</p>
+            <p className="text-xs text-slate-400">{fmtDurHM(data.cleanSeconds)} clean · best ever {fmtDurHM(data.bestCleanRunSec)}</p>
             <p className="mt-1 text-[11px] font-semibold text-neon-cyan">📡 Recovery Journey · Day {cleanDays} of 365 · {journeyPct}%</p>
           </div>
           <FreedomRing pct={freedom} />

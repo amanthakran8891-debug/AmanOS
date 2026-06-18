@@ -17,6 +17,8 @@ import { ruleBasedBriefing, weeklyIntelligenceReport } from "@/lib/coach";
 import { buildTimeline } from "@/lib/recovery-timeline";
 import { futureMessages, nextFutureMessage } from "@/lib/future-messages";
 import { cravingAnalytics, type CravingRow } from "@/lib/cravings";
+import { buildMissionBoard } from "@/lib/missions";
+import { timelineHealth } from "@/lib/timeline-health";
 import { computeCeo } from "@/lib/ceo";
 import { computeRpg } from "@/lib/rpg";
 import { progressPct as gitaProgressPct, LOADED_VERSES, TOTAL_VERSES, HAS_VERSES, getVerse } from "@/lib/gita-library";
@@ -150,9 +152,8 @@ export async function getDashboardData() {
     forecast: intel.forecast,
     coach: intel.coach,
     recoveryXp: intel.recoveryXp,
+    missionBoard: intel.missionBoard,
     dragonAttackStats: intel.dragonAttackStats,
-    futureMessages: intel.futureMessages,
-    nextFutureMessage: intel.nextFutureMessage,
     combat: {
       level: combat.level,
       rank: combat.rank,
@@ -326,6 +327,8 @@ export async function getRecoveryData() {
       : null,
     symptomTrend,
     longestStreak: settings.longestStreakDays,
+    cleanSeconds: cleanSecondsFrom(settings.lastJointAt),
+    bestCleanRunSec: Math.max(settings.bestCleanRunSec, cleanSecondsFrom(settings.lastJointAt)),
     // For real-time client-side ticking of the recovery scores.
     liveInputs: { level: settings.recUseLevel, symptomAvg, longestStreak: settings.longestStreakDays },
   };
@@ -851,10 +854,61 @@ async function loadRecoveryIntel(settings: SettingsRow, todayRow: DayLogRow) {
   const daTotal = dragonAttacks.length;
   const daSurvived = dragonAttacks.filter((a: { survived: boolean }) => a.survived).length;
 
+  // ── Permanent records (for the Intelligence hub) ──
+  const dmgTargets = { nclexHoursTarget: settings.nclexHoursTarget, proteinTarget: settings.proteinTarget, waterTarget: settings.waterTarget };
+  const discTargets = { proteinTarget: settings.proteinTarget, sleepTarget: settings.sleepTarget, nclexHoursTarget: settings.nclexHoursTarget };
+  const records = {
+    bestCleanRunSec: Math.max(settings.bestCleanRunSec, cleanSec),
+    highestLifeScore: allDays.reduce((mx, d) => Math.max(mx, d.lifeScore), 0),
+    highestDamageDay: allDays.reduce((mx, d) => Math.max(mx, dailyDamage(d, dmgTargets).total), 0),
+    totalCleanDays: allDays.filter((d) => d.jointClean).length,
+    bestDisciplineScore: allDays.reduce((mx, d) => Math.max(mx, dailyScore({
+      date: d.date, jointClean: d.jointClean, proteinG: d.proteinG, gymDone: d.gymDone, nclexHours: d.nclexHours,
+      nclexQuestions: d.nclexQuestions, bharatfareDone: d.bharatfareDone, sleepHours: d.sleepHours, checkinDone: d.checkinDone, recoveryCheckin: false, hasData: true,
+    }, discTargets).score), 0),
+  };
+
+  // ── Mission Board (decision engine) ──
+  const missionBoard = buildMissionBoard({
+    today: { gymDone: todayFacts.gymDone, nclexHours: todayFacts.nclexHours, proteinG: todayFacts.proteinG, spiritualDone: todayFacts.spiritualDone },
+    targets: { nclexHoursTarget: settings.nclexHoursTarget, proteinTarget: settings.proteinTarget },
+    riskBand: forecast.band,
+  });
+
+  // ── Timeline Health (data trust) ──
+  const health = timelineHealth({ relapses: relapseEvents.map((e) => ({ at: e.at })), dayThreshold: 3, windowMinutes: 8 });
+
+  // ── Forecast accuracy — snapshot today, score resolved past days ──
+  const relapsedToday = !todayFacts.jointClean;
+  await adb.forecastLog.upsert({
+    where: { date },
+    create: { date, band: forecast.band, score: forecast.score, relapsed: relapsedToday },
+    update: { band: forecast.band, score: forecast.score, relapsed: relapsedToday },
+  }).catch(() => {});
+  const since = addDaysKey(date, -30);
+  const fcLogs: { date: string; band: string; relapsed: boolean }[] =
+    await adb.forecastLog.findMany({ where: { date: { gte: since } }, orderBy: { date: "asc" } }).catch(() => []);
+  const resolved = fcLogs.filter((l) => l.date < date); // exclude today (not yet resolved)
+  let correct = 0;
+  const examples = resolved.map((l) => {
+    const ok = l.band === "Low" ? !l.relapsed : l.relapsed;
+    if (ok) correct++;
+    return { date: l.date, band: l.band, relapsed: l.relapsed, correct: ok };
+  });
+  const forecastAccuracy = {
+    pct: resolved.length ? Math.round((correct / resolved.length) * 100) : 0,
+    sample: resolved.length,
+    recent: examples.slice(-5).reverse(),
+  };
+
   return {
     forecast,
     recoveryXp,
     dragonIntel,
+    missionBoard,
+    timelineHealth: health,
+    forecastAccuracy,
+    records,
     cost,
     coach,
     report,

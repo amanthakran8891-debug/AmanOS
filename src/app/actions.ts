@@ -256,6 +256,44 @@ export async function addCraving(craving: string, trigger: string, intensity: nu
   revalidatePath("/");
 }
 
+// ── Mission Board — one-click completion ──────────────────────────────────────
+/** Complete a board mission in one tap by marking its underlying habit done. */
+export async function completeMission(key: "gym" | "nclex" | "protein" | "spiritual") {
+  const date = todayKey();
+  const day = await ensureDay(date);
+  const s = await getSettings();
+  if (key === "gym") await prisma.dayLog.update({ where: { date }, data: { gymDone: true } });
+  else if (key === "spiritual") await prisma.dayLog.update({ where: { date }, data: { spiritualDone: true } });
+  else if (key === "protein") await prisma.dayLog.update({ where: { date }, data: { proteinG: Math.max(day.proteinG, s.proteinTarget) } });
+  else if (key === "nclex") await prisma.dayLog.update({ where: { date }, data: { nclexHours: Math.max(day.nclexHours, s.nclexHoursTarget) } });
+  await recompute(date);
+  revalidatePath("/");
+  revalidatePath("/intelligence");
+}
+
+// ── Data hygiene — collapse a day's relapses to a single log ───────────────────
+/** Keep the earliest relapse on each given day, delete the rest. For cleaning up
+ *  obvious test/spam days (e.g. "11 relapses logged"). Relapse events only. */
+export async function collapseRelapseDaysToOne(dates: string[]): Promise<number> {
+  const days = (dates || []).filter((d) => typeof d === "string" && d.length === 10);
+  let deleted = 0;
+  for (const date of days) {
+    const events = await prisma.jointEvent.findMany({ where: { type: "relapse" }, orderBy: { at: "asc" } });
+    const sameDay = events.filter((e) => {
+      const x = e.at;
+      const k = `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+      return k === date;
+    });
+    if (sameDay.length <= 1) continue;
+    const toDelete = sameDay.slice(1).map((e) => e.id);
+    const res = await prisma.jointEvent.deleteMany({ where: { id: { in: toDelete }, type: "relapse" } });
+    deleted += res.count;
+  }
+  revalidatePath("/intelligence");
+  revalidatePath("/");
+  return deleted;
+}
+
 // ── Dragon Attack Mode — emergency craving intervention ───────────────────────
 /** Record the outcome of a Dragon Attack Mode session. A survived session also
  *  logs a resisted craving so the prediction engine and analytics learn from it;

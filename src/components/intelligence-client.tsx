@@ -2,10 +2,14 @@
 
 import type { IntelligenceData } from "@/lib/data";
 import { DailyCoach } from "./daily-coach";
+import { MissionBoardCard } from "./mission-board";
 import { RiskForecast } from "./risk-forecast";
 import { DragonAttackMode } from "./dragon-attack";
 import { RecoveryXpCard } from "./recovery-xp";
+import { ForecastAccuracyCard } from "./forecast-accuracy";
+import { TimelineHealthCard } from "./timeline-health";
 import { DragonIntelPanel } from "./dragon-intel";
+import { RecoveryRecords } from "./recovery-records";
 import { IntelligenceReportCard } from "./intelligence-report";
 import { CostDashboardCard } from "./cost-dashboard";
 import { RecoveryTimelineCard } from "./recovery-timeline";
@@ -15,23 +19,33 @@ import { DataCleanup } from "./data-cleanup";
 export function IntelligenceClient({ data }: { data: IntelligenceData }) {
   return (
     <div className="space-y-4">
+      {/* Act now */}
       <DailyCoach briefing={data.coach} />
-
+      <MissionBoardCard board={data.missionBoard} />
       <DragonAttackMode />
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <RiskForecast forecast={data.forecast} />
-        <RecoveryXpCard xp={data.recoveryXp} lastJointAt={data.lastJointAt} />
-      </div>
+      {/* Why — risk */}
+      <RiskForecast forecast={data.forecast} />
 
+      {/* Progression */}
+      <RecoveryXpCard xp={data.recoveryXp} lastJointAt={data.lastJointAt} detailed />
+
+      {/* Trust + accuracy */}
+      <ForecastAccuracyCard accuracy={data.forecastAccuracy} />
+      <TimelineHealthCard health={data.timelineHealth} />
+
+      {/* Strategy + records */}
       <DragonIntelPanel intel={data.dragonIntel} />
+      <RecoveryRecords records={data.records} lastJointAt={data.lastJointAt} />
 
+      {/* Patterns + cost */}
       <IntelligenceReportCard report={data.report} />
-
       <CostDashboardCard cost={data.cost} />
 
+      {/* History */}
       <RecoveryTimelineCard timeline={data.timeline} />
 
+      {/* Motivation */}
       <FutureMessages messages={data.futureMessages} next={data.nextFutureMessage} />
 
       {data.dragonAttackStats.total > 0 && (

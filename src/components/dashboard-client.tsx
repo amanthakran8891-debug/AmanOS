@@ -15,12 +15,11 @@ import { Dragon } from "./dragon";
 import { Hourglass } from "./hourglass";
 import { GitaCard } from "./gita-card";
 import { WisdomCard } from "./wisdom-card";
-import { CleanStreakHero } from "./clean-streak-hero";
-import { RecoveryRecords } from "./recovery-records";
 import { DailyCoach } from "./daily-coach";
-import { RiskForecast } from "./risk-forecast";
 import { DragonAttackMode } from "./dragon-attack";
-import { RecoveryXpCard } from "./recovery-xp";
+import { CommandCard } from "./command-card";
+import { MissionBoardCard } from "./mission-board";
+import { fmtDurHM } from "@/lib/clean-time";
 import { InstallCard } from "./install-card";
 import { MissionCard } from "./mission-card";
 import { QuickActions } from "./quick-actions";
@@ -98,28 +97,31 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
         </section>
       )}
 
-      {/* Daily Wisdom (rotating header) */}
-      <div className="mt-4">
+      {/* Today's Command — sharp directive checklist */}
+      <section className="mt-3">
+        <CommandCard
+          gymDone={today.gymDone}
+          nclexDone={today.nclexHours >= settings.nclexHoursTarget}
+          proteinDone={today.proteinG >= settings.proteinTarget}
+          cleanToday={today.jointClean}
+          dangerWindowLabel={data.forecast.window?.label ?? null}
+        />
+      </section>
+
+      {/* Daily Wisdom */}
+      <div className="mt-3">
         <WisdomCard wisdom={wisdom} dateLabel={dateLabel} />
       </div>
 
-      {/* Clean Streak Hero */}
-      <section className="mt-4">
-        <CleanStreakHero lastJointAt={settings.lastJointAt} streakDays={streakDays} longestStreak={settings.longestStreakDays} bestCleanRunSec={settings.bestCleanRunSec} />
-      </section>
-
-      {/* Recovery Intelligence — coach, risk, emergency tool, XP (recovery-first) */}
-      <section className="mt-4 space-y-3">
+      {/* Recovery — coach, mission board, emergency tool (act now) */}
+      <section className="mt-3 space-y-3">
         <DailyCoach briefing={data.coach} />
+        <MissionBoardCard board={data.missionBoard} />
         <DragonAttackMode />
-        <div className="grid gap-4 lg:grid-cols-2">
-          <RiskForecast forecast={data.forecast} compact />
-          <RecoveryXpCard xp={data.recoveryXp} lastJointAt={settings.lastJointAt} />
-        </div>
         <Link href="/intelligence" className="card flex items-center justify-between transition hover:border-neon-cyan/50" style={{ background: "linear-gradient(160deg, rgba(34,211,238,0.10), rgba(13,19,34,0.55))" }}>
           <div>
-            <p className="text-sm font-bold text-white">🧠 Recovery Intelligence</p>
-            <p className="text-[11px] text-slate-400">Risk forecast, dragon weaknesses, cost, timeline, reports →</p>
+            <p className="text-sm font-bold text-white">{data.forecast.emoji} Risk: {data.forecast.band} · Open Recovery Intelligence</p>
+            <p className="text-[11px] text-slate-400">Forecast, dragon weaknesses, XP, timeline, reports →</p>
           </div>
           <span className="text-2xl">→</span>
         </Link>
@@ -195,7 +197,7 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
             <div>
               <p className="label">Joint Recovery</p>
               <p className="mt-1 text-3xl font-extrabold tabular-nums text-neon-green glow-text">{streakDays}<span className="ml-1 text-base font-semibold text-slate-400">day streak</span></p>
-              <p className="text-xs text-slate-400">Longest: {Math.max(settings.longestStreakDays, streakDays)} days</p>
+              <p className="text-xs text-slate-400">Longest: {fmtDurHM(records.bestCleanRunSec)}</p>
             </div>
             <div className="text-right">
               <p className="label">Today</p>
@@ -212,11 +214,6 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
             <CravingButton pending={pending} onLog={(c, t, i) => run(() => addCraving(c, t, i))} />
           </div>
         </div>
-      </section>
-
-      {/* Recovery Records — permanent career stats */}
-      <section className="mt-4">
-        <RecoveryRecords records={records} lastJointAt={settings.lastJointAt} />
       </section>
 
       {/* Discipline — the truth mirror */}

@@ -226,6 +226,17 @@ model Achievement {
   unlockedAt DateTime @default(now())
 }
 
+/// Daily snapshot of the risk forecast vs the actual outcome — powers Forecast
+/// Accuracy. One row per day; updated through the day as the outcome resolves.
+model ForecastLog {
+  date      String   @id // "YYYY-MM-DD"
+  band      String   @default("Low") // Low | Medium | High (predicted)
+  score     Int      @default(0)      // 0..100 predicted risk
+  relapsed  Boolean  @default(false)  // actual outcome that day
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
 /// One Dragon Attack Mode session — the emergency craving-intervention tool.
 /// Powers Recovery XP (mission rewards), intervention stats and the timeline.
 model DragonAttack {
