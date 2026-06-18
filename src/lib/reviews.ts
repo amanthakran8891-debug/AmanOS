@@ -1,6 +1,7 @@
 import prisma from "@/lib/db";
 import { todayKey, addDaysKey, keyToDate } from "@/lib/dates";
 import { dragonState, ratio } from "@/lib/score";
+import { streakDaysFrom } from "@/lib/clean-time";
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 const avg = (xs: number[]) => (xs.length ? sum(xs) / xs.length : 0);
@@ -227,7 +228,7 @@ export async function getQuarterlyReview() {
     disciplineScore,
     healthScore,
     addictionRecovery: cleanPct,
-    currentStreak: s.lastJointAt ? Math.max(0, Math.floor((Date.now() - new Date(s.lastJointAt).getTime()) / 86400000)) : 0,
+    currentStreak: streakDaysFrom(s.lastJointAt),
     financialDiscipline,
     studyConsistency,
     businessConsistency,

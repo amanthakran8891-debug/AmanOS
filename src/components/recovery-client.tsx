@@ -9,6 +9,7 @@ import {
   type SymptomKey, type UseLevel, type RecoveryScores,
 } from "@/lib/recovery";
 import { logSymptoms, updateRecoveryProfile } from "@/app/actions";
+import { cleanDaysFloat } from "@/lib/clean-time";
 
 const confColor = { low: "#fb7185", medium: "#fbbf24", high: "#34f5c5" } as const;
 
@@ -23,8 +24,7 @@ export function RecoveryClient({ data }: { data: RecoveryData }) {
   const [live, setLive] = useState<RecoveryScores | null>(null);
   useEffect(() => {
     if (!data.lastJointAt) return;
-    const since = new Date(data.lastJointAt).getTime();
-    const tick = () => setLive(recoveryScoresAt(Math.max(0, (Date.now() - since) / 86400000), data.liveInputs.level as UseLevel, data.liveInputs.symptomAvg, data.liveInputs.longestStreak));
+    const tick = () => setLive(recoveryScoresAt(cleanDaysFloat(data.lastJointAt), data.liveInputs.level as UseLevel, data.liveInputs.symptomAvg, data.liveInputs.longestStreak));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
@@ -32,7 +32,7 @@ export function RecoveryClient({ data }: { data: RecoveryData }) {
   const scores = live ?? model.scores;
   const freedom = scores.freedom;
   const bp = bodyPhase(cleanDays);
-  const dayFloat = data.lastJointAt ? Math.max(0, (Date.now() - new Date(data.lastJointAt).getTime()) / 86400000) : cleanDays;
+  const dayFloat = data.lastJointAt ? cleanDaysFloat(data.lastJointAt) : cleanDays;
   const prevScores = recoveryScoresAt(Math.max(0, dayFloat - 1), data.liveInputs.level as UseLevel, data.liveInputs.symptomAvg, data.liveInputs.longestStreak);
   const journeyPct = Math.round((cleanDays / 365) * 1000) / 10;
 

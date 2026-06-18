@@ -26,6 +26,7 @@ model Settings {
   weightGoal        Float?
   lastJointAt       DateTime? // anchor for the Hourglass + clean streak
   longestStreakDays Int       @default(0)
+  bestCleanRunSec   Int       @default(0) // longest clean run ever, in SECONDS (keeps h/m/s, survives relapse)
 
   // ── NCLEX / AHPRA Command Center ──
   nclexExamName  String   @default("NCLEX-RN")

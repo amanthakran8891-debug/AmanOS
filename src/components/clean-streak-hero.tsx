@@ -6,7 +6,7 @@ import Link from "next/link";
 import { elapsedSince } from "@/lib/dates";
 import { MILESTONES, MILESTONE_REWARDS, fmtDur } from "@/lib/damage";
 
-export function CleanStreakHero({ lastJointAt, streakDays, longestStreak }: { lastJointAt: string | null; streakDays: number; longestStreak: number }) {
+export function CleanStreakHero({ lastJointAt, streakDays, longestStreak, bestCleanRunSec = 0 }: { lastJointAt: string | null; streakDays: number; longestStreak: number; bestCleanRunSec?: number }) {
   const since = lastJointAt ? new Date(lastJointAt) : null;
   const [t, setT] = useState(() => (since ? elapsedSince(since) : null));
 
@@ -21,7 +21,10 @@ export function CleanStreakHero({ lastJointAt, streakDays, longestStreak }: { la
   const prev = [...MILESTONES].reverse().find((m) => m <= streakDays) ?? 0;
   const pct = Math.min(100, Math.round(((streakDays - prev) / (next - prev)) * 100));
   const remainingToNext = Math.max(0, next * 86400 - elapsedSec);
-  const bestSec = Math.max(longestStreak * 86400, elapsedSec);
+  // Longest Clean Run reads the persisted record (full h/m/s precision), blended
+  // with the live run so an in-progress record updates instantly. Same source as
+  // the Hourglass and Recovery Records — they can never disagree.
+  const bestSec = Math.max(bestCleanRunSec, longestStreak * 86400, elapsedSec);
   const upcomingRewards = MILESTONE_REWARDS.filter((r) => r.day > streakDays).slice(0, 3);
   const label = (d: number) => (d === 365 ? "Year 1" : `Day ${d}`);
 

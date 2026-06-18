@@ -5,6 +5,7 @@ import prisma from "@/lib/db";
 import { todayKey } from "@/lib/dates";
 import { lifeScore, type DayInput, type Targets } from "@/lib/score";
 import { ensureDay, ensureSettings as getSettings } from "@/lib/day";
+import { streakDaysFrom, cleanSecondsFrom } from "@/lib/clean-time";
 
 function toTargets(s: { proteinTarget: number; waterTarget: number; sleepTarget: number; stepsTarget: number; nclexHoursTarget: number }): Targets {
   return {
@@ -33,12 +34,19 @@ async function recompute(date: string) {
   };
   const { total } = lifeScore(input, toTargets(settings));
   await prisma.dayLog.update({ where: { date }, data: { lifeScore: total } });
+  await maintainRecords();
   await checkAchievements();
 }
 
-function streakDaysFrom(lastJointAt: Date | null): number {
-  if (!lastJointAt) return 0;
-  return Math.max(0, Math.floor((Date.now() - lastJointAt.getTime()) / 86400000));
+/** Ratchet the permanent recovery records forward. The current clean run is
+ *  persisted whenever it exceeds the stored best, so the record is saved even
+ *  without a relapse to trigger it. Records only ever go up. */
+async function maintainRecords() {
+  const settings = await getSettings();
+  const liveRunSec = cleanSecondsFrom(settings.lastJointAt);
+  if (liveRunSec > settings.bestCleanRunSec) {
+    await prisma.settings.update({ where: { id: 1 }, data: { bestCleanRunSec: liveRunSec } });
+  }
 }
 
 async function unlock(key: string) {
@@ -331,12 +339,17 @@ export async function setNote(text: string) {
 export async function relapse(trigger: string, note: string) {
   const settings = await getSettings();
   const prevStreak = streakDaysFrom(settings.lastJointAt);
+  const prevRunSec = cleanSecondsFrom(settings.lastJointAt); // full precision of the run we're ending
   await prisma.jointEvent.create({ data: { type: "relapse", trigger: trigger || null, note: note || null } });
   await prisma.settings.update({
     where: { id: 1 },
     data: {
       lastJointAt: new Date(),
+      // Records are PERMANENT — a relapse resets the clock, never the achievements.
       longestStreakDays: Math.max(settings.longestStreakDays, prevStreak),
+      bestCleanRunSec: Math.max(settings.bestCleanRunSec, prevRunSec),
+      recCumulativeCleanDays: settings.recCumulativeCleanDays + prevStreak,
+      recRelapseCount: settings.recRelapseCount + 1,
     },
   });
   const date = todayKey();

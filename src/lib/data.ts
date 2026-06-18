@@ -8,6 +8,7 @@ import { recoveryModel, recoveryScoresAt, SYMPTOM_KEYS, TIMELINE as RECOVERY_TIM
 import { dailyScore, driftFlags, momentum, weeklyReport, type DayFacts, type DiscTargets } from "@/lib/discipline";
 import { computeCombat } from "@/lib/combat";
 import { dailyDamage, lifetimeDamageFromDays, dragonCampaign } from "@/lib/damage";
+import { streakDaysFrom } from "@/lib/clean-time";
 import { computeCeo } from "@/lib/ceo";
 import { computeRpg } from "@/lib/rpg";
 import { progressPct as gitaProgressPct, LOADED_VERSES, TOTAL_VERSES, HAS_VERSES, getVerse } from "@/lib/gita-library";
@@ -59,9 +60,7 @@ export async function getDashboardData() {
     targets,
   );
 
-  const streakDays = settings.lastJointAt
-    ? Math.max(0, Math.floor((Date.now() - settings.lastJointAt.getTime()) / 86400000))
-    : 0;
+  const streakDays = streakDaysFrom(settings.lastJointAt);
   const disciplineToday = dailyScore(
     {
       date,
@@ -108,6 +107,14 @@ export async function getDashboardData() {
       weightGoal: settings.weightGoal,
       lastJointAt: settings.lastJointAt ? settings.lastJointAt.toISOString() : null,
       longestStreakDays: settings.longestStreakDays,
+      bestCleanRunSec: settings.bestCleanRunSec,
+    },
+    records: {
+      bestCleanRunSec: Math.max(settings.bestCleanRunSec, settings.lastJointAt ? Math.floor((Date.now() - settings.lastJointAt.getTime()) / 1000) : 0),
+      highestLifeScore: combat.records.highestLifeScore,
+      bestDisciplineScore: combat.records.bestDisciplineScore,
+      highestDamageDay: combat.records.highestDamageDay,
+      totalCleanDays: combat.records.totalCleanDays,
     },
     today: {
       jointClean: today.jointClean,
@@ -244,9 +251,7 @@ export async function getRecoveryData() {
   const date = todayKey();
   const settings = await ensureSettings();
 
-  const cleanDays = settings.lastJointAt
-    ? Math.max(0, Math.floor((Date.now() - settings.lastJointAt.getTime()) / 86400000))
-    : 0;
+  const cleanDays = streakDaysFrom(settings.lastJointAt);
 
   // Last 14 days of symptom logs → 7-day averages feed the model; today's row pre-fills the tracker.
   const recentKeys = lastNDays(14, date);
@@ -355,9 +360,7 @@ export async function getDisciplineData() {
     };
   };
 
-  const cleanStreakDays = settings.lastJointAt
-    ? Math.max(0, Math.floor((Date.now() - settings.lastJointAt.getTime()) / 86400000))
-    : 0;
+  const cleanStreakDays = streakDaysFrom(settings.lastJointAt);
 
   const todayScore = dailyScore(facts(date), targets);
   const yKey = addDaysKey(date, -1);
@@ -445,7 +448,7 @@ async function buildCombatState(settings: SettingsRow) {
   const factsByDate = new Map(facts.map((f) => [f.date, f]));
   const factFor = (k: string): DayFacts => factsByDate.get(k) ?? emptyFacts(k);
 
-  const currentStreak = settings.lastJointAt ? Math.max(0, Math.floor((Date.now() - settings.lastJointAt.getTime()) / 86400000)) : 0;
+  const currentStreak = streakDaysFrom(settings.lastJointAt);
   const longestStreak = Math.max(settings.longestStreakDays, currentStreak);
 
   const last7 = lastNDays(7, date).map((k) => dailyScore(factFor(k), targetsDisc).score);
@@ -498,7 +501,14 @@ async function buildCombatState(settings: SettingsRow) {
     dmgTargets,
   );
 
-  return { ...combat, campaign, lifetimeDamage, dragonsDefeated: campaign.dragonsDefeated, todayDamage };
+  // ── Permanent recovery records (career stats, derived from the full log) ──
+  const bestDisciplineScore = facts.reduce((mx, f) => Math.max(mx, dailyScore(f, targetsDisc).score), 0);
+  const highestDamageDay = allDays.reduce((mx, d) => Math.max(mx, dailyDamage(d, dmgTargets).total), 0);
+  const highestLifeScore = allDays.reduce((mx, d) => Math.max(mx, d.lifeScore), 0);
+  const totalCleanDays = allDays.filter((d) => d.jointClean).length;
+  const records = { bestDisciplineScore, highestDamageDay, highestLifeScore, totalCleanDays };
+
+  return { ...combat, campaign, lifetimeDamage, dragonsDefeated: campaign.dragonsDefeated, todayDamage, records };
 }
 
 export async function getCombatData() {
@@ -529,7 +539,7 @@ export async function getCeoData() {
   const todayFacts = factsDesc[0];
   const disciplineToday = dailyScore(todayFacts, targetsDisc).score;
 
-  const currentStreak = settings.lastJointAt ? Math.max(0, Math.floor((Date.now() - settings.lastJointAt.getTime()) / 86400000)) : 0;
+  const currentStreak = streakDaysFrom(settings.lastJointAt);
   const craving = todaySymptom?.cravings ?? 0;
   const todayRow = logMap.get(date);
   const dragonSt = todayRow
@@ -600,7 +610,7 @@ export async function getRpgData() {
   const spiritualDays = spiritualSet.size;
   const totalQuestions = qAgg._sum.questions ?? 0;
 
-  const currentStreak = settings.lastJointAt ? Math.max(0, Math.floor((Date.now() - settings.lastJointAt.getTime()) / 86400000)) : 0;
+  const currentStreak = streakDaysFrom(settings.lastJointAt);
   const longestStreak = Math.max(settings.longestStreakDays, currentStreak);
   const recoveryHighest = {
     score: Math.round(recoveryScoresAt(longestStreak, settings.recUseLevel as UseLevel, undefined, longestStreak).freedom),

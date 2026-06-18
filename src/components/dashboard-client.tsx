@@ -16,6 +16,7 @@ import { Hourglass } from "./hourglass";
 import { GitaCard } from "./gita-card";
 import { WisdomCard } from "./wisdom-card";
 import { CleanStreakHero } from "./clean-streak-hero";
+import { RecoveryRecords } from "./recovery-records";
 import { InstallCard } from "./install-card";
 import { MissionCard } from "./mission-card";
 import { QuickActions } from "./quick-actions";
@@ -61,7 +62,7 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
   const [pending, start] = useTransition();
   const run = (fn: () => Promise<void>) => start(() => void fn());
 
-  const { today, score, dragon, settings, streakDays, history, foods, gymSets, partRecency, budget } = data;
+  const { today, score, dragon, settings, streakDays, history, foods, gymSets, partRecency, budget, records } = data;
   const zoneText = score.zone === "excellent" ? "Excellent" : score.zone === "improving" ? "Improving" : "Off Track";
   const disc = data.disciplineToday;
   const discBand = disc >= 75 ? "Strong day" : disc >= 45 ? "Partial day" : "Drift day";
@@ -100,7 +101,7 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
 
       {/* Clean Streak Hero */}
       <section className="mt-4">
-        <CleanStreakHero lastJointAt={settings.lastJointAt} streakDays={streakDays} longestStreak={settings.longestStreakDays} />
+        <CleanStreakHero lastJointAt={settings.lastJointAt} streakDays={streakDays} longestStreak={settings.longestStreakDays} bestCleanRunSec={settings.bestCleanRunSec} />
       </section>
 
       {/* Hero: Life Score + Dragon */}
@@ -165,9 +166,9 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
         </div>
       </section>
 
-      {/* Hourglass + Joint Recovery */}
+      {/* Hourglass of Freedom — the recovery command center */}
       <section className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Hourglass lastJointAt={settings.lastJointAt} />
+        <Hourglass lastJointAt={settings.lastJointAt} bestCleanRunSec={settings.bestCleanRunSec} streakDays={streakDays} />
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
@@ -190,6 +191,11 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
             <CravingButton pending={pending} onLog={(c, t, i) => run(() => addCraving(c, t, i))} />
           </div>
         </div>
+      </section>
+
+      {/* Recovery Records — permanent career stats */}
+      <section className="mt-4">
+        <RecoveryRecords records={records} lastJointAt={settings.lastJointAt} />
       </section>
 
       {/* Discipline — the truth mirror */}

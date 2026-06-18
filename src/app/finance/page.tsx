@@ -1,6 +1,7 @@
 import prisma from "@/lib/db";
 import { PageHeader } from "@/components/bits";
 import { ensureSettings } from "@/lib/day";
+import { streakDaysFrom } from "@/lib/clean-time";
 import { financeReport, type Txn, type Account } from "@/lib/finance";
 import { FinanceDashboard } from "@/components/finance/finance-dashboard";
 import { LogTransaction } from "@/components/finance/log-transaction";
@@ -15,9 +16,7 @@ export default async function FinancePage() {
     ensureSettings(),
   ]);
 
-  const cleanDays = settings.lastJointAt
-    ? Math.max(0, Math.floor((Date.now() - settings.lastJointAt.getTime()) / 86400000))
-    : 0;
+  const cleanDays = streakDaysFrom(settings.lastJointAt);
 
   const transactions: Txn[] = txnRows.map((t) => ({ date: t.date, kind: t.kind, category: t.category, amount: t.amount, recurring: t.recurring }));
   const legacyExpenses = expenseRows.map((e) => ({ date: e.date, category: e.category, amount: e.amount }));
