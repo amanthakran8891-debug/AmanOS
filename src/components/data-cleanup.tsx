@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { findDuplicateRelapses, deleteRelapseDuplicates } from "@/app/actions";
+import { findDuplicateRelapses, deleteRelapseDuplicates, archiveRelapsesBefore } from "@/app/actions";
 
 interface DuplicateRelapseGroup {
   keep: { id: string; at: string; trigger: string | null };
@@ -16,6 +16,19 @@ export function DataCleanup() {
   const [groups, setGroups] = useState<DuplicateRelapseGroup[]>([]);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [result, setResult] = useState<string | null>(null);
+  const today = new Date().toISOString().slice(0, 10);
+  const [archiveDate, setArchiveDate] = useState(today);
+  const [archiveResult, setArchiveResult] = useState<string | null>(null);
+  const [confirmArchive, setConfirmArchive] = useState(false);
+
+  const archive = () =>
+    start(() =>
+      void archiveRelapsesBefore(new Date(archiveDate).toISOString()).then((n) => {
+        setArchiveResult(`Archived ${n} relapse log${n === 1 ? "" : "s"} before ${archiveDate}.`);
+        setConfirmArchive(false);
+        router.refresh();
+      }),
+    );
 
   const scan = () =>
     start(() =>
@@ -85,6 +98,23 @@ export function DataCleanup() {
           </button>
         </>
       )}
+
+      {/* Option C — archive test data before a date */}
+      <div className="mt-4 rounded-xl border border-line bg-surface-2/40 p-3">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Archive test data</p>
+        <p className="mt-0.5 text-[11px] text-slate-500">Remove relapse logs before a date (e.g. development/test entries). Cravings &amp; victories are kept.</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <input type="date" className="input max-w-[160px]" value={archiveDate} onChange={(e) => { setArchiveDate(e.target.value); setConfirmArchive(false); }} />
+          {!confirmArchive ? (
+            <button className="btn-ghost !py-1.5 text-xs" disabled={pending} onClick={() => setConfirmArchive(true)}>Archive before this date</button>
+          ) : (
+            <button className="btn-danger !py-1.5 text-xs" disabled={pending} onClick={archive}>Confirm — archive now</button>
+          )}
+        </div>
+        {archiveResult && <p className="mt-2 text-sm font-semibold text-neon-green">{archiveResult}</p>}
+      </div>
+
+      <p className="mt-3 text-[11px] font-semibold text-neon-red/90">⚠ These actions cannot be undone unless the database is restored from a backup.</p>
     </div>
   );
 }

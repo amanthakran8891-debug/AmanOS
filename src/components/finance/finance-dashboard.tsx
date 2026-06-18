@@ -104,10 +104,10 @@ export function FinanceDashboard({ r, recent, accounts, cleanDays }: { r: Financ
 
       {/* ── Habit cost / Freedom Fund ── */}
       <div className={card} style={{ borderColor: "#f59e0b44" }}>
-        <p className={h2}>The true cost of habits</p>
+        <p className={h2}>The true cost of habits <span className="text-[11px] font-normal text-slate-500">· logged transactions only</span></p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatTile label="Weed — lifetime" value={gbp(r.weedCost.lifetime)} sub={`${gbp(r.weedCost.month)} this month`} color="#fb7185" accent="#fb7185" />
-          <StatTile label="Nicotine — lifetime" value={gbp(r.nicotineCost.lifetime)} sub={`${gbp(r.nicotineCost.month)} this month`} color="#fb7185" accent="#fb7185" />
+          <StatTile label="Weed — logged" value={gbp(r.weedCost.lifetime)} sub={`${gbp(r.weedCost.month)} this month`} color="#fb7185" accent="#fb7185" />
+          <StatTile label="Nicotine — logged" value={gbp(r.nicotineCost.lifetime)} sub={`est. on Nicotine page`} color="#fb7185" accent="#fb7185" />
           <StatTile label="Saved staying clean" value={gbp(r.moneyRecoveredClean)} sub={`${cleanDays} clean days`} color="#34d399" accent="#34d399" />
           <StatTile label="10-yr if you relapse" value={gbp(r.projected10yrAddiction)} sub="projected drain" color="#f59e0b" accent="#f59e0b" />
         </div>

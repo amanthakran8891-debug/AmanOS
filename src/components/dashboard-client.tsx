@@ -19,6 +19,7 @@ import { DailyCoach } from "./daily-coach";
 import { DragonAttackMode } from "./dragon-attack";
 import { CommandCard } from "./command-card";
 import { MissionBoardCard } from "./mission-board";
+import { BattleMode } from "./battle-mode";
 import { fmtDurHM } from "@/lib/clean-time";
 import { InstallCard } from "./install-card";
 import { MissionCard } from "./mission-card";
@@ -97,8 +98,9 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
         </section>
       )}
 
-      {/* Today's Command — sharp directive checklist */}
-      <section className="mt-3">
+      {/* ACT NOW — the only question Home answers: what do I do right now? */}
+      <section className="mt-3 space-y-3">
+        {/* 1. Today's Command */}
         <CommandCard
           gymDone={today.gymDone}
           nclexDone={today.nclexHours >= settings.nclexHoursTarget}
@@ -106,17 +108,14 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
           cleanToday={today.jointClean}
           dangerWindowLabel={data.forecast.window?.label ?? null}
         />
-      </section>
-
-      {/* Daily Wisdom */}
-      <div className="mt-3">
-        <WisdomCard wisdom={wisdom} dateLabel={dateLabel} />
-      </div>
-
-      {/* Recovery — coach, mission board, emergency tool (act now) */}
-      <section className="mt-3 space-y-3">
-        <DailyCoach briefing={data.coach} />
+        {/* 2. Mission Board */}
         <MissionBoardCard board={data.missionBoard} />
+        {/* 3. Quick Actions */}
+        <QuickActions data={data} />
+        {/* One-Tap Battle Mode — for overwhelmed moments */}
+        <BattleMode board={data.missionBoard} enemy={{ name: dragon.name, color: dragon.color, health: dragon.health }} />
+        {/* Coach (collapsible) + emergency tool */}
+        <DailyCoach briefing={data.coach} collapsible />
         <DragonAttackMode />
         <Link href="/intelligence" className="card flex items-center justify-between transition hover:border-neon-cyan/50" style={{ background: "linear-gradient(160deg, rgba(34,211,238,0.10), rgba(13,19,34,0.55))" }}>
           <div>
@@ -126,6 +125,11 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
           <span className="text-2xl">→</span>
         </Link>
       </section>
+
+      {/* Daily Wisdom */}
+      <div className="mt-4">
+        <WisdomCard wisdom={wisdom} dateLabel={dateLabel} />
+      </div>
 
       {/* Hero: Life Score + Dragon */}
       <section className="mt-4 grid gap-4 lg:grid-cols-5">
@@ -191,7 +195,7 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
 
       {/* Hourglass of Freedom — the recovery command center */}
       <section className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Hourglass lastJointAt={settings.lastJointAt} bestCleanRunSec={settings.bestCleanRunSec} streakDays={streakDays} />
+        <Hourglass lastJointAt={settings.lastJointAt} bestCleanRunSec={records.bestCleanRunSec} streakDays={streakDays} />
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
@@ -274,14 +278,9 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
         </Link>
       </section>
 
-      {/* Today's Mission */}
+      {/* Full daily checklist — broader than the Mission Board (protein, BharatFare, etc.) */}
       <section className="mt-4">
         <MissionCard data={data} />
-      </section>
-
-      {/* Quick Actions — phone mode */}
-      <section className="mt-4">
-        <QuickActions data={data} />
       </section>
 
       {/* Future Self */}

@@ -269,6 +269,7 @@ export async function completeMission(key: "gym" | "nclex" | "protein" | "spirit
   await recompute(date);
   revalidatePath("/");
   revalidatePath("/intelligence");
+  revalidatePath("/nicotine");
 }
 
 // ── Data hygiene — collapse a day's relapses to a single log ───────────────────
@@ -292,6 +293,17 @@ export async function collapseRelapseDaysToOne(dates: string[]): Promise<number>
   revalidatePath("/intelligence");
   revalidatePath("/");
   return deleted;
+}
+
+/** Archive (delete) relapse logs dated before a cutoff — for clearing test data
+ *  created during development. Relapse events ONLY; cravings/victories untouched. */
+export async function archiveRelapsesBefore(dateISO: string): Promise<number> {
+  const cutoff = new Date(dateISO);
+  if (isNaN(cutoff.getTime())) return 0;
+  const res = await prisma.jointEvent.deleteMany({ where: { type: "relapse", at: { lt: cutoff } } });
+  revalidatePath("/intelligence");
+  revalidatePath("/");
+  return res.count;
 }
 
 // ── Dragon Attack Mode — emergency craving intervention ───────────────────────

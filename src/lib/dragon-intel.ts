@@ -107,7 +107,7 @@ export function computeDragonIntel(input: DragonIntelInput): DragonIntel {
     attacks.push({ key: "emotion", icon: "🌀", label: `Emotion: ${topEmo.name}`, detail: `${topEmo.count} past strikes`, severity: topEmo.count >= 5 ? "high" : "medium" });
   }
   if (input.riskiestDay) {
-    attacks.push({ key: "day", icon: "📅", label: `Weekday: ${input.riskiestDay}`, detail: "Relapses cluster here", severity: "medium" });
+    attacks.push({ key: "day", icon: "📅", label: `Historically riskiest day: ${input.riskiestDay}`, detail: "Your all-time peak relapse weekday (not necessarily today)", severity: "medium" });
   }
   if (attacks.length === 0) {
     attacks.push({ key: "unknown", icon: "❔", label: "Unknown attacks", detail: "Log cravings to reveal the dragon's tactics", severity: "low" });

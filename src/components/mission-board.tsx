@@ -33,9 +33,9 @@ export function MissionBoardCard({ board }: { board: MissionBoard }) {
               </p>
             </div>
             {m.done ? (
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-neon-green text-bg">✓</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-neon-green/20 px-2.5 py-1 text-xs font-bold text-neon-green">✓ Done</span>
             ) : (
-              <button className="btn-neon !px-3 !py-1.5 text-xs" disabled={pending} onClick={() => complete(m.key)}>Done</button>
+              <button className="btn-neon !px-3 !py-1.5 text-xs" disabled={pending} onClick={() => complete(m.key)}>Mark Done</button>
             )}
           </motion.div>
         ))}

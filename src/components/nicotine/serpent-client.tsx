@@ -175,8 +175,9 @@ function CostCard({ cost }: { cost: SerpentBattle["cost"] }) {
   ];
   return (
     <div className="card">
-      <p className="label">💸 Honest Cost</p>
-      <div className="mt-1 rounded-xl border border-line bg-surface-2/50 px-3 py-2 text-[11px] text-slate-400">
+      <p className="label">💸 Cost — nicotine estimate</p>
+      <p className="mt-0.5 text-[11px] text-slate-500">Projected from the assumptions below — not logged spend. The Finance page shows logged transactions only.</p>
+      <div className="mt-2 rounded-xl border border-line bg-surface-2/50 px-3 py-2 text-[11px] text-slate-400">
         Assumptions: {cost.assumptions.cigsPerDay} cigarettes/day · {c}{cost.assumptions.pricePerUnit}/unit · {c}{cost.assumptions.pricePerPack}/pack of {cost.assumptions.packSize}
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">

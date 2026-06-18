@@ -48,9 +48,12 @@ export function TimelineHealthCard({ health }: { health: TimelineHealth }) {
           {done ? (
             <p className="mt-2 text-sm font-semibold text-neon-green">{done}</p>
           ) : (
-            <button className="btn-danger mt-2 w-full !py-2 text-xs" disabled={pending} onClick={collapseAll}>
-              Collapse each day to a single relapse
-            </button>
+            <>
+              <button className="btn-danger mt-2 w-full !py-2 text-xs" disabled={pending} onClick={collapseAll}>
+                Collapse each day to a single relapse
+              </button>
+              <p className="mt-1.5 text-[10px] text-neon-red/80">⚠ Cannot be undone unless the database is restored from a backup.</p>
+            </>
           )}
         </div>
       )}

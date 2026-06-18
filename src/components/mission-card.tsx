@@ -23,7 +23,7 @@ export function MissionCard({ data }: { data: DashboardData }) {
       animate={{ opacity: 1, y: 0 }}
     >
       <div className="flex items-center justify-between">
-        <p className="label text-neon-violet">Today&rsquo;s Mission</p>
+        <p className="label text-neon-violet">Full Daily Checklist</p>
         <span className={`text-sm font-bold tabular-nums ${all ? "text-neon-green" : "text-slate-300"}`}>{done} / {items.length}</span>
       </div>
 

@@ -20,6 +20,13 @@ export function NclexClient({ data }: { data: NclexData }) {
 
   const maxTrend = Math.max(10, ...trend.map((t) => t.questions));
   const goalPct = exam.dailyGoal > 0 ? Math.min(100, Math.round((totals.todayQuestions / exam.dailyGoal) * 100)) : 0;
+  const weekQuestions = trend.slice(-7).reduce((s, d) => s + d.questions, 0);
+  const remainingToday = Math.max(0, exam.dailyGoal - totals.todayQuestions);
+  const urgency = exam.set
+    ? exam.daysLeft <= 14 ? { c: "#fb7185", l: "Final stretch — go hard" }
+      : exam.daysLeft <= 30 ? { c: "#fbbf24", l: "Ramp up the volume" }
+      : { c: "#22d3ee", l: "Steady build" }
+    : null;
 
   function submit() {
     const q = parseInt(questions || "0", 10);
@@ -41,8 +48,9 @@ export function NclexClient({ data }: { data: NclexData }) {
             <p className="label">{exam.name} · Exam Countdown</p>
             {exam.set ? (
               <>
-                <p className="mt-1 text-5xl font-extrabold tabular-nums text-white glow-text">{exam.daysLeft}<span className="ml-2 text-base font-semibold text-slate-400">days</span></p>
+                <p className="mt-1 text-5xl font-extrabold tabular-nums glow-text" style={{ color: urgency?.c ?? "#fff" }}>{exam.daysLeft}<span className="ml-2 text-base font-semibold text-slate-400">days</span></p>
                 <p className="text-xs text-slate-400">{exam.examDateLabel} · {exam.weeksLeft} weeks out</p>
+                {urgency && <p className="mt-0.5 text-[11px] font-bold" style={{ color: urgency.c }}>{urgency.l}</p>}
               </>
             ) : (
               <p className="mt-1 text-sm text-slate-300">Set your exam date to start the countdown.</p>
@@ -69,6 +77,25 @@ export function NclexClient({ data }: { data: NclexData }) {
         <StatTile label="Today" value={`${totals.todayQuestions}/${exam.dailyGoal}`} sub={`${goalPct}% of goal`} color={goalPct >= 100 ? "#34f5c5" : "#e8edf6"} accent="#a3e635" />
       </div>
       <p className="px-1 text-xs text-slate-400">{readiness.note}</p>
+
+      {/* ── Today's NCLEX Mission ── */}
+      <div className="card" style={{ background: "linear-gradient(160deg, rgba(34,211,238,0.12), rgba(13,19,34,0.6))" }}>
+        <div className="flex items-center justify-between">
+          <p className="label text-neon-cyan">🎯 Today&apos;s NCLEX Mission</p>
+          <span className="text-sm font-black text-neon-cyan tabular-nums">{totals.todayQuestions}/{exam.dailyGoal}</span>
+        </div>
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-bg">
+          <motion.div className="h-full rounded-full bg-neon-cyan" initial={{ width: 0 }} animate={{ width: `${goalPct}%` }} transition={{ duration: 0.7 }} style={{ boxShadow: "0 0 10px rgba(34,211,238,0.6)" }} />
+        </div>
+        <p className="mt-2 text-sm font-semibold text-white">
+          {remainingToday > 0 ? `${remainingToday} more questions to hit today's goal.` : "Daily goal complete — great work. 🎉"}
+        </p>
+        <div className="mt-1 flex flex-wrap gap-x-4 text-[11px] text-slate-400">
+          <span>This week: <span className="font-bold text-white tabular-nums">{weekQuestions}</span> questions</span>
+          <span>Streak: <span className="font-bold text-neon-amber tabular-nums">{streak}🔥</span></span>
+          {weak.length > 0 && <span>Focus weakest: <span className="font-bold text-neon-red">{weak[0].short}</span></span>}
+        </div>
+      </div>
 
       {/* ── Quick log ── */}
       <div className="card">

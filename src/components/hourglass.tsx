@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { fmtClock as pad } from "@/lib/score";
 import {
   cleanBreakdown,
-  bestRunSeconds,
   streakDaysFrom,
   fmtRun,
   MILESTONES,
@@ -27,26 +26,25 @@ export function Hourglass({
   streakDays?: number;
 }) {
   const [t, setT] = useState<Breakdown | null>(() => cleanBreakdown(lastJointAt));
-  const [bestSec, setBestSec] = useState(() => bestRunSeconds(bestCleanRunSec, lastJointAt));
+  // Best Clean Run is the SINGLE server value (max of stored + run-at-load), shared
+  // verbatim with Joint Recovery — no per-second drift between the two cards.
+  const bestSec = bestCleanRunSec;
 
   useEffect(() => {
     if (!lastJointAt) {
       setT(null);
       return;
     }
-    const tick = () => {
-      setT(cleanBreakdown(lastJointAt));
-      setBestSec(bestRunSeconds(bestCleanRunSec, lastJointAt));
-    };
+    const tick = () => setT(cleanBreakdown(lastJointAt));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [lastJointAt, bestCleanRunSec]);
+  }, [lastJointAt]);
 
   const streakDays = streakDaysProp ?? streakDaysFrom(lastJointAt);
   const title = currentTitle(streakDays);
   const upcoming = nextTitle(streakDays);
-  // The current live run IS the record when it has surpassed the stored best.
+  // The current run IS the record when it has reached the stored best.
   const liveIsRecord = !!t && t.totalSeconds >= bestSec;
 
   return (

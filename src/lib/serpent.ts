@@ -6,8 +6,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { NicotineReport, NicotineGoalRow, NicotineRecovery } from "@/lib/nicotine";
-
-export type ThreatBand = "LOW" | "MODERATE" | "HIGH" | "EXTREME";
+import { threatBand, THREAT_VISUAL, threatToHp, rankFor } from "@/lib/battle";
+export type { ThreatBand } from "@/lib/battle";
 
 export interface SerpentState {
   hpCurrent: number;   // 0..1000 (higher = stronger enemy)
@@ -68,16 +68,17 @@ const clamp = (n: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, n));
 
 // ── Threat / HP ───────────────────────────────────────────────────────────────
 export function serpentState(report: NicotineReport): SerpentState {
-  const threatPct = clamp(Math.round(0.55 * report.dragon.hp + 0.45 * report.riskToday.score));
-  const hpCurrent = Math.round((threatPct / 100) * 1000);
-  const threat: ThreatBand = threatPct >= 75 ? "EXTREME" : threatPct >= 50 ? "HIGH" : threatPct >= 25 ? "MODERATE" : "LOW";
-  const meta = {
-    LOW: { color: "#34d399", eye: "#34d399", posture: "Relaxed, slow breathing", heavySmoke: false, warningPulse: false },
-    MODERATE: { color: "#fbbf24", eye: "#fbbf24", posture: "Stirring — light smoke", heavySmoke: false, warningPulse: false },
-    HIGH: { color: "#fb923c", eye: "#fb923c", posture: "Coiled and alert", heavySmoke: true, warningPulse: false },
-    EXTREME: { color: "#fb7185", eye: "#ff4d57", posture: "Aggressive — heavy smoke, tail shaking", heavySmoke: true, warningPulse: true },
+  const pct = clamp(Math.round(0.55 * report.dragon.hp + 0.45 * report.riskToday.score));
+  const { hpCurrent, hpMax, threatPct } = threatToHp(pct);
+  const threat = threatBand(threatPct);
+  const v = THREAT_VISUAL[threat];
+  const posture = {
+    LOW: "Relaxed, slow breathing",
+    MODERATE: "Stirring — light smoke",
+    HIGH: "Coiled and alert",
+    EXTREME: "Aggressive — heavy smoke, tail shaking",
   }[threat];
-  return { hpCurrent, hpMax: 1000, threatPct, threat, ...meta };
+  return { hpCurrent, hpMax, threatPct, threat, color: v.color, eye: v.eye, posture, heavySmoke: v.heavySmoke, warningPulse: v.warningPulse };
 }
 
 // ── Today's damage / Arena actions ────────────────────────────────────────────
@@ -113,12 +114,8 @@ export function serpentMissions(today: SerpentToday): SerpentMissionBoard {
 
 // ── Progression ───────────────────────────────────────────────────────────────
 export function serpentProgress(freeDays: number): SerpentProgress {
-  let rank = SERPENT_RANKS[0];
-  for (const r of SERPENT_RANKS) if (freeDays >= r.min) rank = r;
-  const next = SERPENT_RANKS.find((r) => r.min > freeDays) ?? null;
-  const span = next ? next.min - rank.min : 1;
-  const progressPct = next ? clamp(Math.round(((freeDays - rank.min) / span) * 100)) : 100;
-  return { rank, next, freeDays, progressPct, daysToNext: next ? Math.max(0, next.min - freeDays) : 0 };
+  const r = rankFor(freeDays, SERPENT_RANKS);
+  return { rank: r.rank, next: r.next, freeDays, progressPct: r.progressPct, daysToNext: r.toNext };
 }
 
 // ── Locked systems (progressive unlock) ───────────────────────────────────────
