@@ -5,10 +5,10 @@
 // rank progression. Pure — composes the existing NicotineReport + today context.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { ThreatBand } from "@/lib/battle";
 import type { NicotineReport, NicotineGoalRow, NicotineRecovery } from "@/lib/nicotine";
 import { threatBand, THREAT_VISUAL, threatToHp, rankFor } from "@/lib/battle";
 export type { ThreatBand } from "@/lib/battle";
-
 export interface SerpentState {
   hpCurrent: number;   // 0..1000 (higher = stronger enemy)
   hpMax: number;       // 1000
@@ -184,3 +184,4 @@ export function buildSerpentBattle(report: NicotineReport, today: SerpentToday):
     needMoreDays: report.needMoreDays,
   };
 }
+
