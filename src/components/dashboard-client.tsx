@@ -15,6 +15,10 @@ import { RecoverySuccessPanel } from "./recovery-success";
 import type { RecoverySuccess } from "@/lib/recovery-success";
 import { CravingVictoryPanel } from "./craving-victory";
 import type { CravingVictory } from "@/lib/craving-victory";
+import { DisciplineHistoryPanel } from "./discipline-history";
+import type { DisciplineHistory } from "@/lib/discipline-history";
+import { BharatfareCeoPanel } from "./bharatfare-ceo";
+import type { BharatfareCeo } from "@/lib/bharatfare-ceo";
 import { DailyDamage } from "./daily-damage";
 import { RecoveryMission } from "./recovery-mission";
 import { CravingBattle } from "./craving-battle";
@@ -70,7 +74,7 @@ const ACHIEVEMENTS: { key: string; label: string; icon: string }[] = [
   { key: "life-commander", label: "Life Commander", icon: "⚡" },
 ];
 
-export function DashboardClient({ data, ceo, verse, wisdom, dateLabel, dragonTax, moneySaved, recoverySuccess, cravingVictory }: { data: DashboardData; ceo: CeoData; verse: Verse; wisdom: Wisdom; dateLabel: string; dragonTax?: DragonTax; moneySaved?: MoneySaved; recoverySuccess?: RecoverySuccess; cravingVictory?: CravingVictory }) {
+export function DashboardClient({ data, ceo, verse, wisdom, dateLabel, dragonTax, moneySaved, recoverySuccess, cravingVictory, disciplineHistory, bharatfareCeo }: { data: DashboardData; ceo: CeoData; verse: Verse; wisdom: Wisdom; dateLabel: string; dragonTax?: DragonTax; moneySaved?: MoneySaved; recoverySuccess?: RecoverySuccess; cravingVictory?: CravingVictory; disciplineHistory?: DisciplineHistory; bharatfareCeo?: BharatfareCeo }) {
   const [pending, start] = useTransition();
   const run = (fn: () => Promise<void>) => start(() => void fn());
 
@@ -110,6 +114,22 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel, dragonTax
       {cravingVictory && (
         <section className="mt-3">
           <CravingVictoryPanel data={cravingVictory} />
+        </section>
+      )}
+
+      {/* Discipline Score History (item 8). Guarded/optional. */}
+      {disciplineHistory && (
+        <section className="mt-3">
+          <DisciplineHistoryPanel data={disciplineHistory} />
+        </section>
+      )}
+
+      {/* BharatFare CEO (Phase 2 item 2). Guarded — only once real metrics exist,
+          to avoid an empty-state card on the home cockpit. The /bharatfare page
+          always renders (with setup guidance). */}
+      {bharatfareCeo?.hasData && (
+        <section className="mt-3">
+          <BharatfareCeoPanel data={bharatfareCeo} />
         </section>
       )}
 
