@@ -15,14 +15,16 @@ import { getFitness } from "@/lib/fitness";
 import { getOneThing } from "@/lib/one-thing";
 import { getWeeklyCeoReview } from "@/lib/weekly-review";
 import { getRecoveryLogs } from "@/lib/recovery-logs";
+import { getFutureSimulation } from "@/lib/future-simulator";
+import { getDailyBriefing } from "@/lib/daily-briefing";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   // CEO cockpit data is required by DashboardClient — fetch it in parallel with
   // the dashboard data. getCeoData() takes no args; it loads its own inputs.
-  const [data, ceo, smoking, savedInputs, recoverySuccess, cravingVictory, disciplineHistory, bharatfareCeo, career, cleanRunHistory, fitness, oneThing, weeklyReview, recoveryLogs] = await Promise.all([getDashboardData(), getCeoData(), getSmokingSplit(), getMoneySavedInputs(), getRecoverySuccess(), getCravingVictory(), getDisciplineHistory(), getBharatfareCeo(), getCareerCommand(), getCleanRuns(), getFitness(), getOneThing(), getWeeklyCeoReview(), getRecoveryLogs()]);
+  const [data, ceo, smoking, savedInputs, recoverySuccess, cravingVictory, disciplineHistory, bharatfareCeo, career, cleanRunHistory, fitness, oneThing, weeklyReview, recoveryLogs, future, briefing] = await Promise.all([getDashboardData(), getCeoData(), getSmokingSplit(), getMoneySavedInputs(), getRecoverySuccess(), getCravingVictory(), getDisciplineHistory(), getBharatfareCeo(), getCareerCommand(), getCleanRuns(), getFitness(), getOneThing(), getWeeklyCeoReview(), getRecoveryLogs(), getFutureSimulation(), getDailyBriefing()]);
   const verse = verseForDay(data.date);
   const wisdom = wisdomForDay(data.date);
-  return <DashboardClient data={data} ceo={ceo} verse={verse} wisdom={wisdom} dateLabel={prettyDate()} dragonTax={dragonTaxFromSplit(smoking)} moneySaved={computeMoneySaved(smoking, savedInputs)} recoverySuccess={recoverySuccess} cravingVictory={cravingVictory} disciplineHistory={disciplineHistory} bharatfareCeo={bharatfareCeo} career={career} cleanRuns={cleanRunHistory.runs} fitness={fitness} oneThing={oneThing} weeklyReview={weeklyReview} recoveryToday={recoveryLogs.today} />;
+  return <DashboardClient data={data} ceo={ceo} verse={verse} wisdom={wisdom} dateLabel={prettyDate()} dragonTax={dragonTaxFromSplit(smoking)} moneySaved={computeMoneySaved(smoking, savedInputs)} recoverySuccess={recoverySuccess} cravingVictory={cravingVictory} disciplineHistory={disciplineHistory} bharatfareCeo={bharatfareCeo} career={career} cleanRuns={cleanRunHistory.runs} fitness={fitness} oneThing={oneThing} weeklyReview={weeklyReview} recoveryToday={recoveryLogs.today} future={future} briefing={briefing} />;
 }

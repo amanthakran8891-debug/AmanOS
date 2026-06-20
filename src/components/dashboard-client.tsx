@@ -31,6 +31,10 @@ import { WeeklyReviewMini } from "./weekly-review";
 import type { WeeklyCeoReview } from "@/lib/weekly-review";
 import { RecoveryLogsMini } from "./recovery-logs-mini";
 import type { RecoveryDayLog } from "@/lib/recovery-logs";
+import { FutureMini } from "./future-simulator";
+import type { FutureSimulation } from "@/lib/future-simulator";
+import { DailyBriefingCard } from "./daily-briefing";
+import type { DailyBriefing } from "@/lib/daily-briefing";
 import { DailyDamage } from "./daily-damage";
 import { RecoveryMission } from "./recovery-mission";
 import { CravingBattle } from "./craving-battle";
@@ -86,7 +90,7 @@ const ACHIEVEMENTS: { key: string; label: string; icon: string }[] = [
   { key: "life-commander", label: "Life Commander", icon: "⚡" },
 ];
 
-export function DashboardClient({ data, ceo, verse, wisdom, dateLabel, dragonTax, moneySaved, recoverySuccess, cravingVictory, disciplineHistory, bharatfareCeo, career, cleanRuns, fitness, oneThing, weeklyReview, recoveryToday }: { data: DashboardData; ceo: CeoData; verse: Verse; wisdom: Wisdom; dateLabel: string; dragonTax?: DragonTax; moneySaved?: MoneySaved; recoverySuccess?: RecoverySuccess; cravingVictory?: CravingVictory; disciplineHistory?: DisciplineHistory; bharatfareCeo?: BharatfareCeo; career?: CareerCommand; cleanRuns?: CleanRun[]; fitness?: FitnessCommand; oneThing?: OneThing; weeklyReview?: WeeklyCeoReview; recoveryToday?: RecoveryDayLog }) {
+export function DashboardClient({ data, ceo, verse, wisdom, dateLabel, dragonTax, moneySaved, recoverySuccess, cravingVictory, disciplineHistory, bharatfareCeo, career, cleanRuns, fitness, oneThing, weeklyReview, recoveryToday, future, briefing }: { data: DashboardData; ceo: CeoData; verse: Verse; wisdom: Wisdom; dateLabel: string; dragonTax?: DragonTax; moneySaved?: MoneySaved; recoverySuccess?: RecoverySuccess; cravingVictory?: CravingVictory; disciplineHistory?: DisciplineHistory; bharatfareCeo?: BharatfareCeo; career?: CareerCommand; cleanRuns?: CleanRun[]; fitness?: FitnessCommand; oneThing?: OneThing; weeklyReview?: WeeklyCeoReview; recoveryToday?: RecoveryDayLog; future?: FutureSimulation; briefing?: DailyBriefing }) {
   const [pending, start] = useTransition();
   const run = (fn: () => Promise<void>) => start(() => void fn());
 
@@ -110,9 +114,16 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel, dragonTax
         <span className="chip" style={{ color: score.color, borderColor: `${score.color}55` }}>● {zoneText}</span>
       </header>
 
+      {/* Daily Command Briefing — top of the cockpit, above the ONE Thing */}
+      {briefing && (
+        <section className="mt-1">
+          <DailyBriefingCard data={briefing} />
+        </section>
+      )}
+
       {/* ONE Thing — the single highest-priority action, top of the cockpit */}
       {oneThing && (
-        <section className="mt-1">
+        <section className="mt-3">
           <OneThingCard data={oneThing} />
         </section>
       )}
@@ -121,6 +132,13 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel, dragonTax
       {weeklyReview && (
         <section className="mt-3">
           <WeeklyReviewMini data={weeklyReview} />
+        </section>
+      )}
+
+      {/* Future Aman Simulator — compact, links to /future */}
+      {future && (
+        <section className="mt-3">
+          <FutureMini data={future} />
         </section>
       )}
 

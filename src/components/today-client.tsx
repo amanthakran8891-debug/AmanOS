@@ -7,9 +7,11 @@ import { Ring } from "./ring";
 import { CheckinCard } from "./checkin-card";
 import { OneThingCard } from "./one-thing";
 import type { OneThing } from "@/lib/one-thing";
+import { DailyBriefingCard } from "./daily-briefing";
+import type { DailyBriefing } from "@/lib/daily-briefing";
 import { addWater, addFood, setField, toggleFlag, relapse, markCleanToday } from "@/app/actions";
 
-export function TodayClient({ data, dateLabel, oneThing }: { data: DashboardData; dateLabel: string; oneThing?: OneThing }) {
+export function TodayClient({ data, dateLabel, oneThing, briefing }: { data: DashboardData; dateLabel: string; oneThing?: OneThing; briefing?: DailyBriefing }) {
   const [pending, start] = useTransition();
   const run = (fn: () => Promise<void>) => start(() => void fn());
   const { today, settings, score, streakDays } = data;
@@ -70,6 +72,13 @@ export function TodayClient({ data, dateLabel, oneThing }: { data: DashboardData
         </div>
         <Ring value={score.total} max={100} size={72} stroke={9} color={score.color} center={<span className="text-base font-bold text-white">{score.total}</span>} />
       </header>
+
+      {/* Daily Command Briefing — above the ONE Thing */}
+      {briefing && (
+        <div className="mb-3">
+          <DailyBriefingCard data={briefing} />
+        </div>
+      )}
 
       {/* ONE Thing — the single highest-priority action today */}
       {oneThing && (
