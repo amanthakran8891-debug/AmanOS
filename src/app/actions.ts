@@ -210,6 +210,14 @@ export async function logNicotineEvent(input: {
   type: string; quantity?: number; nicotineMg?: number; cost?: number;
   trigger?: string; location?: string; emotion?: string; outcome?: "won" | "lost"; shift?: string; note?: string;
 }) {
+  // Duplicate prevention (#11): debounce a "relapse" so a double-tap can't log it
+  // twice. Cigarette/vape/pouch/cigar USE events and cravings are intentional
+  // discrete entries and are NOT debounced.
+  if (input.type === "relapse") {
+    const since = new Date(Date.now() - RELAPSE_DEBOUNCE_MIN * 60000);
+    const recent = await ndb.nicotineEvent.findFirst({ where: { type: "relapse", at: { gte: since } }, orderBy: { at: "desc" } }).catch(() => null);
+    if (recent) { revalidatePath("/nicotine"); revalidatePath("/"); return; }
+  }
   await ndb.nicotineEvent.create({
     data: {
       type: input.type || "cigarette",
@@ -367,6 +375,23 @@ export async function findDuplicateRelapses(windowMinutes = 8): Promise<Duplicat
   }));
 }
 
+/** Suspicious days: calendar days with an unrealistic number of relapse logs
+ *  (default ≥ 4) — almost always double-tap/test spam. Returns a preview only;
+ *  use collapseRelapseDaysToOne(dates) to safely keep the earliest per day. */
+export async function findSuspiciousRelapseDays(minPerDay = 4): Promise<{ date: string; count: number }[]> {
+  const events = await prisma.jointEvent.findMany({ where: { type: "relapse" }, orderBy: { at: "asc" } });
+  const byDay = new Map<string, number>();
+  for (const e of events) {
+    const x = e.at;
+    const k = `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+    byDay.set(k, (byDay.get(k) ?? 0) + 1);
+  }
+  return [...byDay.entries()]
+    .filter(([, n]) => n >= minPerDay)
+    .map(([date, count]) => ({ date, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
 /** Delete specific duplicate relapse logs by id. Hard-guarded to type=relapse so
  *  cravings/victories can never be removed by this path. */
 export async function deleteRelapseDuplicates(ids: string[]): Promise<number> {
@@ -376,6 +401,21 @@ export async function deleteRelapseDuplicates(ids: string[]): Promise<number> {
   revalidatePath("/intelligence");
   revalidatePath("/");
   return res.count;
+}
+
+// ── Data-integrity guard (issue #11) ─────────────────────────────────────────
+/** True if a relapse JointEvent was logged within the last `windowMin` minutes.
+ *  Prevents duplicate relapse entries from double-taps / rapid re-submits, which
+ *  were producing impossible counts (e.g. 18 relapses in one day). Cravings and
+ *  victories are NOT debounced — only the relapse signal. */
+const RELAPSE_DEBOUNCE_MIN = 5;
+async function recentRelapseExists(windowMin = RELAPSE_DEBOUNCE_MIN): Promise<boolean> {
+  const since = new Date(Date.now() - windowMin * 60000);
+  const last = await prisma.jointEvent.findFirst({
+    where: { type: "relapse", at: { gte: since } },
+    orderBy: { at: "desc" },
+  });
+  return !!last;
 }
 
 // ── Craving Analytics Engine ─────────────────────────────────────────────────
@@ -393,8 +433,10 @@ export async function logCraving(input: {
       note: input.note || null,
     },
   });
-  // A lost craving is a relapse signal — also record it on the cannabis timeline.
-  if (input.outcome === "lost") {
+  // A lost craving is a relapse signal — also record it on the cannabis timeline,
+  // but DEBOUNCED: skip if a relapse was already logged in the last few minutes so
+  // a double-tap can't inflate the relapse count (issue #11 — duplicate prevention).
+  if (input.outcome === "lost" && !(await recentRelapseExists())) {
     await prisma.jointEvent.create({ data: { type: "relapse", trigger: input.trigger || null, intensity: Math.round(input.intensity || 5) } }).catch(() => {});
   }
   revalidatePath("/cravings");

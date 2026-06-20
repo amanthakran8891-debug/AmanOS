@@ -3,14 +3,18 @@ import { verseForDay } from "@/lib/gita";
 import { wisdomForDay } from "@/lib/wisdom";
 import { prettyDate } from "@/lib/dates";
 import { DashboardClient } from "@/components/dashboard-client";
+import { getSmokingSplit, dragonTaxFromSplit } from "@/lib/smoking-split";
+import { getMoneySavedInputs, computeMoneySaved } from "@/lib/money-saved";
+import { getRecoverySuccess } from "@/lib/recovery-success";
+import { getCravingVictory } from "@/lib/craving-victory";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   // CEO cockpit data is required by DashboardClient — fetch it in parallel with
   // the dashboard data. getCeoData() takes no args; it loads its own inputs.
-  const [data, ceo] = await Promise.all([getDashboardData(), getCeoData()]);
+  const [data, ceo, smoking, savedInputs, recoverySuccess, cravingVictory] = await Promise.all([getDashboardData(), getCeoData(), getSmokingSplit(), getMoneySavedInputs(), getRecoverySuccess(), getCravingVictory()]);
   const verse = verseForDay(data.date);
   const wisdom = wisdomForDay(data.date);
-  return <DashboardClient data={data} ceo={ceo} verse={verse} wisdom={wisdom} dateLabel={prettyDate()} />;
+  return <DashboardClient data={data} ceo={ceo} verse={verse} wisdom={wisdom} dateLabel={prettyDate()} dragonTax={dragonTaxFromSplit(smoking)} moneySaved={computeMoneySaved(smoking, savedInputs)} recoverySuccess={recoverySuccess} cravingVictory={cravingVictory} />;
 }

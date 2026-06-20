@@ -165,7 +165,11 @@ export function flagCard(id: string, name: string, flag: Record<string, boolean>
   const flagNum: Record<string, number> = {};
   for (const d of Object.keys(metric)) flagNum[d] = flag[d] ? 1 : 0;
   const { r } = correlateDaily(flagNum, metric);
-  return { id, name, r: Math.round(r * 100) / 100, n, strength: strength(r), direction: dirOf(r), confidence: confidenceOf(r, n), pct: lift.pct, explanation: explain(lift), enough: lift.nOn >= 3 && lift.nOff >= 3 };
+  // Confidence cap (#4): an unreliable lift (tiny baseline / exploded %) is
+  // downgraded to low confidence and excluded from `enough`, so it never drives
+  // an insight or shows an absurd percentage.
+  const conf: Confidence = lift.reliable ? confidenceOf(r, n) : "low";
+  return { id, name, r: Math.round(r * 100) / 100, n, strength: strength(r), direction: dirOf(r), confidence: conf, pct: lift.pct, explanation: explain(lift), enough: lift.nOn >= 3 && lift.nOff >= 3 && lift.reliable };
 }
 
 export function buildCards(s: LifeSignals): CorrelationCard[] {

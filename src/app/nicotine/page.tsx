@@ -5,6 +5,11 @@ import { SerpentClient } from "@/components/nicotine/serpent-client";
 import { LogNicotine } from "@/components/nicotine/log-nicotine";
 import { ensureSettings, ensureDay } from "@/lib/day";
 import { todayKey } from "@/lib/dates";
+import { getSmokingSplit, dragonTaxFromSplit } from "@/lib/smoking-split";
+import { SmokingSplitPanel } from "@/components/smoking-split";
+import { DragonTaxPanel } from "@/components/dragon-tax";
+import { getMoneySavedInputs, computeMoneySaved } from "@/lib/money-saved";
+import { MoneySavedPanel } from "@/components/money-saved";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +50,8 @@ export default async function NicotinePage() {
   };
 
   const battle = buildSerpentBattle(report, today);
+  const [smoking, savedInputs] = await Promise.all([getSmokingSplit(), getMoneySavedInputs()]);
+  const moneySaved = computeMoneySaved(smoking, savedInputs);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recent = rows.map((r: any) => ({
@@ -56,6 +63,15 @@ export default async function NicotinePage() {
     <main className="mx-auto max-w-3xl px-4 pb-28 pt-6">
       {/* Enemy first — the serpent hero leads, analytics follow. */}
       <SerpentClient battle={battle} report={report} recent={recent} />
+      <div className="mt-4">
+        <SmokingSplitPanel split={smoking} />
+      </div>
+      <div className="mt-4">
+        <DragonTaxPanel tax={dragonTaxFromSplit(smoking)} />
+      </div>
+      <div className="mt-4">
+        <MoneySavedPanel data={moneySaved} />
+      </div>
       <div className="mt-4">
         <LogNicotine />
       </div>

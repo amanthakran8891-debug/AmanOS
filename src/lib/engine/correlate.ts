@@ -20,16 +20,32 @@ export function correlateDaily(a: Record<string, number>, b: Record<string, numb
 }
 
 /** Average of metric B on days where boolean condition A is true vs false →
- *  "% change". E.g. cravings on night-shift days vs other days. */
-export function conditionalLift(flagByDay: Record<string, boolean>, metricByDay: Record<string, number>): { onAvg: number; offAvg: number; pct: number; nOn: number; nOff: number } {
+ *  "% change". E.g. cravings on night-shift days vs other days.
+ *
+ *  Confidence caps (issue #4 — no "spiritual raised cravings by 2208%"):
+ *   - pct is CLAMPED to ±PCT_CAP so a near-zero baseline can't explode it.
+ *   - `reliable` is false when either side has < MIN_SIDE days, the baseline is
+ *     near zero, or the raw (un-clamped) pct exceeded the cap — callers should
+ *     downgrade confidence / hide the % when reliable is false. */
+const PCT_CAP = 300;
+const MIN_SIDE = 3;
+export function conditionalLift(flagByDay: Record<string, boolean>, metricByDay: Record<string, number>): { onAvg: number; offAvg: number; pct: number; pctRaw: number; reliable: boolean; nOn: number; nOff: number } {
   let onSum = 0, onN = 0, offSum = 0, offN = 0;
   for (const [day, v] of Object.entries(metricByDay)) {
     if (flagByDay[day]) { onSum += v; onN++; } else { offSum += v; offN++; }
   }
   const onAvg = onN ? onSum / onN : 0;
   const offAvg = offN ? offSum / offN : 0;
-  const pct = offAvg ? Math.round(((onAvg - offAvg) / offAvg) * 100) : 0;
-  return { onAvg: Math.round(onAvg * 100) / 100, offAvg: Math.round(offAvg * 100) / 100, pct, nOn: onN, nOff: offN };
+  // Baseline floor scales with the metric so rates (0–1) and intensities (0–10)
+  // are both handled: require the baseline to be a meaningful fraction of the mean.
+  const baselineFloor = Math.max(Math.abs(onAvg), Math.abs(offAvg)) * 0.1;
+  const pctRaw = offAvg ? Math.round(((onAvg - offAvg) / offAvg) * 100) : 0;
+  const pct = Math.max(-PCT_CAP, Math.min(PCT_CAP, pctRaw));
+  const reliable =
+    onN >= MIN_SIDE && offN >= MIN_SIDE &&
+    Math.abs(offAvg) >= baselineFloor && Math.abs(offAvg) > 1e-9 &&
+    Math.abs(pctRaw) <= PCT_CAP;
+  return { onAvg: Math.round(onAvg * 100) / 100, offAvg: Math.round(offAvg * 100) / 100, pct, pctRaw, reliable, nOn: onN, nOff: offN };
 }
 
 export function strength(r: number): string {

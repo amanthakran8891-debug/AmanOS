@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { findDuplicateRelapses, deleteRelapseDuplicates, archiveRelapsesBefore } from "@/app/actions";
+import { findDuplicateRelapses, deleteRelapseDuplicates, archiveRelapsesBefore, findSuspiciousRelapseDays, collapseRelapseDaysToOne } from "@/app/actions";
 
 interface DuplicateRelapseGroup {
   keep: { id: string; at: string; trigger: string | null };
@@ -20,6 +20,22 @@ export function DataCleanup() {
   const [archiveDate, setArchiveDate] = useState(today);
   const [archiveResult, setArchiveResult] = useState<string | null>(null);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [suspicious, setSuspicious] = useState<{ date: string; count: number }[] | null>(null);
+  const [suspResult, setSuspResult] = useState<string | null>(null);
+
+  const scanSuspicious = () =>
+    start(() =>
+      void findSuspiciousRelapseDays(4).then((d) => { setSuspicious(d); setSuspResult(null); }),
+    );
+
+  const collapseDay = (date: string) =>
+    start(() =>
+      void collapseRelapseDaysToOne([date]).then((n) => {
+        setSuspResult(`Kept the earliest relapse on ${date}, removed ${n} duplicate${n === 1 ? "" : "s"}.`);
+        setSuspicious((s) => (s ? s.filter((x) => x.date !== date) : s));
+        router.refresh();
+      }),
+    );
 
   const archive = () =>
     start(() =>
@@ -98,6 +114,31 @@ export function DataCleanup() {
           </button>
         </>
       )}
+
+      {/* Suspicious days — unrealistic relapse counts on a single day */}
+      <div className="mt-4 rounded-xl border border-line bg-surface-2/40 p-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Suspicious days</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">Days with ≥ 4 relapse logs — almost always double-tap/test spam. Collapse keeps the earliest, removes the rest.</p>
+          </div>
+          <button className="btn-ghost !py-1.5 text-xs" disabled={pending} onClick={scanSuspicious}>Scan days</button>
+        </div>
+        {suspResult && <p className="mt-2 text-sm font-semibold text-neon-green">{suspResult}</p>}
+        {suspicious && suspicious.length === 0 && !suspResult && (
+          <p className="mt-2 text-sm text-slate-400">No suspicious days found. 🎉</p>
+        )}
+        {suspicious && suspicious.length > 0 && (
+          <div className="mt-2 space-y-1.5">
+            {suspicious.map((d) => (
+              <div key={d.date} className="flex items-center justify-between rounded-lg border border-line bg-surface-2/50 px-3 py-2">
+                <span className="text-[12px] text-slate-300"><span className="font-semibold text-neon-amber">{d.count}</span> relapses on {d.date}</span>
+                <button className="btn-danger !py-1 text-[11px]" disabled={pending} onClick={() => collapseDay(d.date)}>Collapse to 1</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Option C — archive test data before a date */}
       <div className="mt-4 rounded-xl border border-line bg-surface-2/40 p-3">

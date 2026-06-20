@@ -7,6 +7,14 @@ import type { DashboardData, CeoData } from "@/lib/data";
 import type { Verse } from "@/lib/gita";
 import type { Wisdom } from "@/lib/wisdom";
 import { CeoDashboard } from "./ceo-dashboard";
+import { DragonTaxPanel } from "./dragon-tax";
+import type { DragonTax } from "@/lib/smoking-split";
+import { MoneySavedPanel } from "./money-saved";
+import type { MoneySaved } from "@/lib/money-saved";
+import { RecoverySuccessPanel } from "./recovery-success";
+import type { RecoverySuccess } from "@/lib/recovery-success";
+import { CravingVictoryPanel } from "./craving-victory";
+import type { CravingVictory } from "@/lib/craving-victory";
 import { DailyDamage } from "./daily-damage";
 import { RecoveryMission } from "./recovery-mission";
 import { CravingBattle } from "./craving-battle";
@@ -62,7 +70,7 @@ const ACHIEVEMENTS: { key: string; label: string; icon: string }[] = [
   { key: "life-commander", label: "Life Commander", icon: "⚡" },
 ];
 
-export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data: DashboardData; ceo: CeoData; verse: Verse; wisdom: Wisdom; dateLabel: string }) {
+export function DashboardClient({ data, ceo, verse, wisdom, dateLabel, dragonTax, moneySaved, recoverySuccess, cravingVictory }: { data: DashboardData; ceo: CeoData; verse: Verse; wisdom: Wisdom; dateLabel: string; dragonTax?: DragonTax; moneySaved?: MoneySaved; recoverySuccess?: RecoverySuccess; cravingVictory?: CravingVictory }) {
   const [pending, start] = useTransition();
   const run = (fn: () => Promise<void>) => start(() => void fn());
 
@@ -90,6 +98,34 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel }: { data:
       <section className="mt-1">
         <CeoDashboard ceo={ceo} lifeScore={score.total} />
       </section>
+
+      {/* Recovery Success Rate — progress that survives relapse (item 5). Guarded. */}
+      {recoverySuccess && (
+        <section className="mt-3">
+          <RecoverySuccessPanel data={recoverySuccess} />
+        </section>
+      )}
+
+      {/* Craving Victory Rate (item 6). Guarded/optional. */}
+      {cravingVictory && (
+        <section className="mt-3">
+          <CravingVictoryPanel data={cravingVictory} />
+        </section>
+      )}
+
+      {/* Dragon Tax — smoking cost the CEO is paying (item 3). Optional/guarded. */}
+      {dragonTax && (
+        <section className="mt-3">
+          <DragonTaxPanel tax={dragonTax} />
+        </section>
+      )}
+
+      {/* Money Saved — the positive counterpart to Dragon Tax (item 4). Guarded. */}
+      {moneySaved && (
+        <section className="mt-3">
+          <MoneySavedPanel data={moneySaved} />
+        </section>
+      )}
 
       {/* Recovery Mission — only after a relapse today; replaces the 90-day framing */}
       {!today.jointClean && (
