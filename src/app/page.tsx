@@ -9,14 +9,16 @@ import { getRecoverySuccess } from "@/lib/recovery-success";
 import { getCravingVictory } from "@/lib/craving-victory";
 import { getDisciplineHistory } from "@/lib/discipline-history";
 import { getBharatfareCeo } from "@/lib/bharatfare-ceo";
+import { getCareerCommand } from "@/lib/career";
+import { getCleanRuns } from "@/lib/streak-history";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   // CEO cockpit data is required by DashboardClient — fetch it in parallel with
   // the dashboard data. getCeoData() takes no args; it loads its own inputs.
-  const [data, ceo, smoking, savedInputs, recoverySuccess, cravingVictory, disciplineHistory, bharatfareCeo] = await Promise.all([getDashboardData(), getCeoData(), getSmokingSplit(), getMoneySavedInputs(), getRecoverySuccess(), getCravingVictory(), getDisciplineHistory(), getBharatfareCeo()]);
+  const [data, ceo, smoking, savedInputs, recoverySuccess, cravingVictory, disciplineHistory, bharatfareCeo, career, cleanRunHistory] = await Promise.all([getDashboardData(), getCeoData(), getSmokingSplit(), getMoneySavedInputs(), getRecoverySuccess(), getCravingVictory(), getDisciplineHistory(), getBharatfareCeo(), getCareerCommand(), getCleanRuns()]);
   const verse = verseForDay(data.date);
   const wisdom = wisdomForDay(data.date);
-  return <DashboardClient data={data} ceo={ceo} verse={verse} wisdom={wisdom} dateLabel={prettyDate()} dragonTax={dragonTaxFromSplit(smoking)} moneySaved={computeMoneySaved(smoking, savedInputs)} recoverySuccess={recoverySuccess} cravingVictory={cravingVictory} disciplineHistory={disciplineHistory} bharatfareCeo={bharatfareCeo} />;
+  return <DashboardClient data={data} ceo={ceo} verse={verse} wisdom={wisdom} dateLabel={prettyDate()} dragonTax={dragonTaxFromSplit(smoking)} moneySaved={computeMoneySaved(smoking, savedInputs)} recoverySuccess={recoverySuccess} cravingVictory={cravingVictory} disciplineHistory={disciplineHistory} bharatfareCeo={bharatfareCeo} career={career} cleanRuns={cleanRunHistory.runs} />;
 }

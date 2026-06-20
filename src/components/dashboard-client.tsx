@@ -19,6 +19,10 @@ import { DisciplineHistoryPanel } from "./discipline-history";
 import type { DisciplineHistory } from "@/lib/discipline-history";
 import { BharatfareCeoPanel } from "./bharatfare-ceo";
 import type { BharatfareCeo } from "@/lib/bharatfare-ceo";
+import { CareerPanel } from "./career";
+import type { CareerCommand } from "@/lib/career";
+import { CleanRunsMini } from "./clean-runs-mini";
+import type { CleanRun } from "@/lib/streak-history";
 import { DailyDamage } from "./daily-damage";
 import { RecoveryMission } from "./recovery-mission";
 import { CravingBattle } from "./craving-battle";
@@ -74,7 +78,7 @@ const ACHIEVEMENTS: { key: string; label: string; icon: string }[] = [
   { key: "life-commander", label: "Life Commander", icon: "⚡" },
 ];
 
-export function DashboardClient({ data, ceo, verse, wisdom, dateLabel, dragonTax, moneySaved, recoverySuccess, cravingVictory, disciplineHistory, bharatfareCeo }: { data: DashboardData; ceo: CeoData; verse: Verse; wisdom: Wisdom; dateLabel: string; dragonTax?: DragonTax; moneySaved?: MoneySaved; recoverySuccess?: RecoverySuccess; cravingVictory?: CravingVictory; disciplineHistory?: DisciplineHistory; bharatfareCeo?: BharatfareCeo }) {
+export function DashboardClient({ data, ceo, verse, wisdom, dateLabel, dragonTax, moneySaved, recoverySuccess, cravingVictory, disciplineHistory, bharatfareCeo, career, cleanRuns }: { data: DashboardData; ceo: CeoData; verse: Verse; wisdom: Wisdom; dateLabel: string; dragonTax?: DragonTax; moneySaved?: MoneySaved; recoverySuccess?: RecoverySuccess; cravingVictory?: CravingVictory; disciplineHistory?: DisciplineHistory; bharatfareCeo?: BharatfareCeo; career?: CareerCommand; cleanRuns?: CleanRun[] }) {
   const [pending, start] = useTransition();
   const run = (fn: () => Promise<void>) => start(() => void fn());
 
@@ -130,6 +134,13 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel, dragonTax
       {bharatfareCeo?.hasData && (
         <section className="mt-3">
           <BharatfareCeoPanel data={bharatfareCeo} />
+        </section>
+      )}
+
+      {/* Career Command Center (Phase 2 item 3) — a core life pillar, always shown. */}
+      {career && (
+        <section className="mt-3">
+          <CareerPanel data={career} />
         </section>
       )}
 
@@ -273,6 +284,7 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel, dragonTax
             <RelapseButton pending={pending} onRelapse={(trigger, note) => run(() => relapse(trigger, note))} />
             <CravingButton pending={pending} onLog={(c, t, i) => run(() => addCraving(c, t, i))} />
           </div>
+          {cleanRuns && <CleanRunsMini runs={cleanRuns} />}
         </div>
       </section>
 

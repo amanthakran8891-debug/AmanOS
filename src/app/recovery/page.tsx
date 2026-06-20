@@ -1,8 +1,7 @@
 import { getRecoveryData } from "@/lib/data";
 import { PageHeader } from "@/components/bits";
 import { RecoveryClient } from "@/components/recovery-client";
-import prisma from "@/lib/db";
-import { buildStreakHistory, type RelapseInput } from "@/lib/streak-history";
+import { getCleanRuns } from "@/lib/streak-history";
 import { CleanRuns } from "@/components/clean-runs";
 import { getSmokingSplit, dragonTaxFromSplit } from "@/lib/smoking-split";
 import { SmokingSplitPanel } from "@/components/smoking-split";
@@ -17,21 +16,6 @@ import { getRecoveryCalendar } from "@/lib/recovery-calendar";
 import { RecoveryCalendar } from "@/components/recovery-calendar";
 
 export const dynamic = "force-dynamic";
-
-/** Phase 1, item 1: merge cannabis + nicotine relapses into clean-run history.
- *  Read-layer only — derives from existing JointEvent/NicotineEvent logs. */
-async function getCleanRuns() {
-  const ndb = prisma as unknown as { nicotineEvent: { findMany: (a: unknown) => Promise<{ at: Date }[]> } };
-  const [joints, nicotine] = await Promise.all([
-    prisma.jointEvent.findMany({ where: { type: "relapse" }, select: { at: true } }).catch(() => [] as { at: Date }[]),
-    ndb.nicotineEvent.findMany({ where: { type: "relapse" }, select: { at: true } }).catch(() => [] as { at: Date }[]),
-  ]);
-  const relapses: RelapseInput[] = [
-    ...joints.map((j) => ({ at: j.at, kind: "joint" as const })),
-    ...nicotine.map((n) => ({ at: n.at, kind: "cigarette" as const })),
-  ];
-  return buildStreakHistory(relapses);
-}
 
 export default async function RecoveryPage() {
   const [data, history, smoking, savedInputs, success, cravingVictory, calendar] = await Promise.all([getRecoveryData(), getCleanRuns(), getSmokingSplit(), getMoneySavedInputs(), getRecoverySuccess(), getCravingVictory(), getRecoveryCalendar()]);
