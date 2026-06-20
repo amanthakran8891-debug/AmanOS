@@ -14,11 +14,13 @@ import { getCravingVictory } from "@/lib/craving-victory";
 import { CravingVictoryPanel } from "@/components/craving-victory";
 import { getRecoveryCalendar } from "@/lib/recovery-calendar";
 import { RecoveryCalendar } from "@/components/recovery-calendar";
+import { getRecoveryLogs } from "@/lib/recovery-logs";
+import { RecoveryLogs } from "@/components/recovery-logs";
 
 export const dynamic = "force-dynamic";
 
 export default async function RecoveryPage() {
-  const [data, history, smoking, savedInputs, success, cravingVictory, calendar] = await Promise.all([getRecoveryData(), getCleanRuns(), getSmokingSplit(), getMoneySavedInputs(), getRecoverySuccess(), getCravingVictory(), getRecoveryCalendar()]);
+  const [data, history, smoking, savedInputs, success, cravingVictory, calendar, logs] = await Promise.all([getRecoveryData(), getCleanRuns(), getSmokingSplit(), getMoneySavedInputs(), getRecoverySuccess(), getCravingVictory(), getRecoveryCalendar(), getRecoveryLogs()]);
   const moneySaved = computeMoneySaved(smoking, savedInputs);
   return (
     <main className="mx-auto max-w-3xl px-4 pb-28 pt-6">
@@ -29,6 +31,9 @@ export default async function RecoveryPage() {
       </div>
       <div className="mt-4">
         <RecoveryCalendar cells={calendar.cells} />
+      </div>
+      <div className="mt-4">
+        <RecoveryLogs days={logs.days} />
       </div>
       <div className="mt-4">
         <CravingVictoryPanel data={cravingVictory} />

@@ -5,9 +5,11 @@ import { motion } from "framer-motion";
 import type { DashboardData } from "@/lib/data";
 import { Ring } from "./ring";
 import { CheckinCard } from "./checkin-card";
+import { OneThingCard } from "./one-thing";
+import type { OneThing } from "@/lib/one-thing";
 import { addWater, addFood, setField, toggleFlag, relapse, markCleanToday } from "@/app/actions";
 
-export function TodayClient({ data, dateLabel }: { data: DashboardData; dateLabel: string }) {
+export function TodayClient({ data, dateLabel, oneThing }: { data: DashboardData; dateLabel: string; oneThing?: OneThing }) {
   const [pending, start] = useTransition();
   const run = (fn: () => Promise<void>) => start(() => void fn());
   const { today, settings, score, streakDays } = data;
@@ -68,6 +70,13 @@ export function TodayClient({ data, dateLabel }: { data: DashboardData; dateLabe
         </div>
         <Ring value={score.total} max={100} size={72} stroke={9} color={score.color} center={<span className="text-base font-bold text-white">{score.total}</span>} />
       </header>
+
+      {/* ONE Thing — the single highest-priority action today */}
+      {oneThing && (
+        <div className="mb-3">
+          <OneThingCard data={oneThing} />
+        </div>
+      )}
 
       {/* Morning / Night check-in */}
       <div className="mb-3">
