@@ -9,6 +9,7 @@ import { OneThingCard } from "./one-thing";
 import type { OneThing } from "@/lib/one-thing";
 import { DailyBriefingCard } from "./daily-briefing";
 import type { DailyBriefing } from "@/lib/daily-briefing";
+import { RitualLinks } from "./ritual-links";
 import { addWater, addFood, setField, toggleFlag, relapse, markCleanToday } from "@/app/actions";
 
 export function TodayClient({ data, dateLabel, oneThing, briefing }: { data: DashboardData; dateLabel: string; oneThing?: OneThing; briefing?: DailyBriefing }) {
@@ -72,6 +73,11 @@ export function TodayClient({ data, dateLabel, oneThing, briefing }: { data: Das
         </div>
         <Ring value={score.total} max={100} size={72} stroke={9} color={score.color} center={<span className="text-base font-bold text-white">{score.total}</span>} />
       </header>
+
+      {/* Time-aware ritual links */}
+      <div className="mb-3">
+        <RitualLinks />
+      </div>
 
       {/* Daily Command Briefing — above the ONE Thing */}
       {briefing && (

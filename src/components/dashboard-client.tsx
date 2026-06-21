@@ -35,6 +35,7 @@ import { FutureMini } from "./future-simulator";
 import type { FutureSimulation } from "@/lib/future-simulator";
 import { DailyBriefingCard } from "./daily-briefing";
 import type { DailyBriefing } from "@/lib/daily-briefing";
+import { RitualLinks } from "./ritual-links";
 import { DailyDamage } from "./daily-damage";
 import { RecoveryMission } from "./recovery-mission";
 import { CravingBattle } from "./craving-battle";
@@ -114,9 +115,14 @@ export function DashboardClient({ data, ceo, verse, wisdom, dateLabel, dragonTax
         <span className="chip" style={{ color: score.color, borderColor: `${score.color}55` }}>● {zoneText}</span>
       </header>
 
+      {/* Time-aware ritual links — morning briefing / evening debrief */}
+      <section className="mt-1">
+        <RitualLinks />
+      </section>
+
       {/* Daily Command Briefing — top of the cockpit, above the ONE Thing */}
       {briefing && (
-        <section className="mt-1">
+        <section className="mt-3">
           <DailyBriefingCard data={briefing} />
         </section>
       )}
